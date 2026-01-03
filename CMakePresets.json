@@ -1,0 +1,100 @@
+{
+  "version": 4,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "testPresets": [
+    {
+      "name": "gcc-debug",
+      "displayName": "GCC Debug Test",
+      "configurePreset": "gcc-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "gcc-release",
+      "displayName": "GCC Release Test",
+      "configurePreset": "gcc-release",
+      "configuration": "Release"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "emscripten-debug",
+      "displayName": "Emscripten Debug Build",
+      "configurePreset": "emscripten-debug",
+      "jobs": 4,
+      "configuration": "Debug"
+    },
+    {
+      "name": "emscripten-release",
+      "displayName": "Emscripten Release Build",
+      "configurePreset": "emscripten-release",
+      "jobs": 4,
+      "configuration": "Release"
+    },
+    {
+      "name": "gcc-debug",
+      "displayName": "GCC Debug Build",
+      "configurePreset": "gcc-debug",
+      "jobs": 4,
+      "configuration": "Debug"
+    },
+    {
+      "name": "gcc-release",
+      "displayName": "GCC Release Build",
+      "configurePreset": "gcc-release",
+      "jobs": 4,
+      "configuration": "Release"
+    }
+  ],
+  "configurePresets": [
+    {
+      "name": "emscripten-release",
+      "displayName": "Emscripten Release",
+      "description": "Build using Emscripten in Release mode",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/emscripten-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_TOOLCHAIN_FILE": ".emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake"
+      }
+    },
+    {
+      "name": "emscripten-debug",
+      "displayName": "Emscripten Debug",
+      "description": "Build using Emscripten in Debug mode",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/emscripten-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_TOOLCHAIN_FILE": ".emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake"
+      }
+    },
+    {
+      "name": "gcc-release",
+      "displayName": "GCC Release",
+      "description": "Build using GCC in Release mode",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/gcc-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++"
+      }
+    },
+    {
+      "name": "gcc-debug",
+      "displayName": "GCC Debug",
+      "description": "Build using GCC in Debug mode",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/gcc-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++"
+      }
+    }
+  ]
+}

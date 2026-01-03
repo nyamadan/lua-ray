@@ -1,0 +1,10 @@
+{
+  "name": "lua-ray",
+  "version": "1.0.0",
+  "description": "lua ray",
+  "keywords": [],
+  "author": "Yoshiki YAMADA <nyamadandan@gmail.com>",
+  "license": "UNLICENSED",
+  "private": true,
+  "packageManager": "pnpm@10.27.0"
+}
