@@ -12,8 +12,8 @@
 
 ## ビルド、テスト、開発コマンド
 
-- `cmake --build ./build/gcc-debug --parallel 4 --config Debug --target all`: プロジェクトのビルド
-- `ctest --test-dir ./build/gcc-debug --exclude-regex "^prim"`
+- `cmake --build ./build/gcc-debug `: プロジェクトのビルド
+- `ctest --test-dir ./build/gcc-debug --exclude-regex "^prim_"`
 - `./build/gcc-debug/lua-ray`: コンパイルされたアプリケーションの実行
 - `pnpm install`: Node.js依存関係のインストール
 

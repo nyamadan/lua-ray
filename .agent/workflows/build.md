@@ -2,16 +2,16 @@
 description: Build and Run the Lua Ray Tracer
 ---
 
-1. Configure the project with CMake
+1. Build the project
 
 ```bash
-cmake -S . -B build/gcc-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug
+cmake --build build/gcc-debug
 ```
 
-// turbo 2. Build the project
+2. Ran the tests
 
 ```bash
-cmake --build build/gcc-debug --parallel 4 --config Debug --target all
+ctest --test-dir ./build/gcc-debug --exclude-regex "^prim_"
 ```
 
 3. Run the application
