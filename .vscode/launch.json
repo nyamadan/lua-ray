@@ -9,9 +9,10 @@
             "request": "launch",
             "name": "Launch",
             "program": "${command:cmake.getLaunchTargetPath}",
-            "args": [],
-            "cwd": "${command:cmake.getLaunchTargetDirectory}",
-            "preLaunchTask": "CMake: build"
-        }
+            "args": [
+                "${workspaceFolder}/main.lua"
+            ],
+            "cwd": "${command:cmake.getLaunchTargetDirectory}"
+        },
     ]
 }

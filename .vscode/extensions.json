@@ -3,6 +3,7 @@
     "ms-vscode.cmake-tools",
     "prettier.prettier-vscode",
     "ms-vscode.cpptools",
-    "ms-vscode.cpptools-extension-pack"
+    "ms-vscode.cpptools-extension-pack",
+    "vadimcn.vscode-lldb"
   ]
 }

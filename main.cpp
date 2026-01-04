@@ -181,7 +181,7 @@ int main(int argc, char* argv[]) {
     lua_register(L, "api_embree_release_device", api_embree_release_device);
 
     // 3. Run script
-    const char* scriptFile = "raytracer.lua";
+    const char* scriptFile = "main.lua";
     if (argc > 1) {
         scriptFile = argv[1];
     }
