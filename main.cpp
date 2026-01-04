@@ -181,8 +181,13 @@ int main(int argc, char* argv[]) {
     lua_register(L, "api_embree_release_device", api_embree_release_device);
 
     // 3. Run script
-    std::cout << "Running raytracer.lua..." << std::endl;
-    if (luaL_dofile(L, "raytracer.lua") != LUA_OK) {
+    const char* scriptFile = "raytracer.lua";
+    if (argc > 1) {
+        scriptFile = argv[1];
+    }
+
+    std::cout << "Running " << scriptFile << "..." << std::endl;
+    if (luaL_dofile(L, scriptFile) != LUA_OK) {
         std::cerr << "Lua Error: " << lua_tostring(L, -1) << std::endl;
     } else {
         std::cout << "Lua script executed successfully." << std::endl;
