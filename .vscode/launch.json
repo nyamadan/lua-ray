@@ -7,12 +7,20 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Launch",
-            "program": "${command:cmake.getLaunchTargetPath}",
+            "name": "Launch: lua-ray",
+            "program": "build/gcc-debug/lua-ray",
             "args": [
                 "${workspaceFolder}/main.lua"
             ],
-            "cwd": "${command:cmake.getLaunchTargetDirectory}"
+            "cwd": "${workspaceFolder}/build/gcc-debug"
         },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Launch: unit-tests",
+            "program": "build/gcc-debug/unit-tests",
+            "args": [],
+            "cwd": "${workspaceFolder}/build/gcc-debug"
+        }
     ]
 }

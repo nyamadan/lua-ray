@@ -1,5 +1,6 @@
 ---
-description: Build and Run the Lua Ray Tracer
+trigger: model_decision
+description: when build or test the app.
 ---
 
 1. Build the project

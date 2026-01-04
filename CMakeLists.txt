@@ -43,6 +43,27 @@ target_include_directories(lua PUBLIC ${lua_src_SOURCE_DIR})
 target_compile_definitions(lua PUBLIC MAKE_LIB)
 
 # ---------------------------------------------------------
+# lbuffer
+# ---------------------------------------------------------
+FetchContent_Declare(
+    lbuffer_src
+    GIT_REPOSITORY https://github.com/starwing/lbuffer.git
+    GIT_TAG 1031755e5bd1cbf64f0761c2d5c402a678226768
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(lbuffer_src)
+
+add_library(lbuffer STATIC
+    ${lbuffer_src_SOURCE_DIR}/lbuffer.c
+    ${lbuffer_src_SOURCE_DIR}/lbufflib.c
+)
+target_compile_options(lbuffer PRIVATE -w -fpermissive) # Suppress warnings (extern-init), permissive for pointer types
+target_compile_definitions(lbuffer PRIVATE "LUA_QS=\"'%s'\"")
+target_include_directories(lbuffer PUBLIC ${lbuffer_src_SOURCE_DIR})
+# lua headers are needed for lbuffer
+target_link_libraries(lbuffer PRIVATE lua)
+
+# ---------------------------------------------------------
 # Embree (FetchContent版)
 # ---------------------------------------------------------
 # Embree自体のオプションを事前に設定
@@ -102,6 +123,7 @@ target_link_libraries(lua-ray PRIVATE
     SDL3::SDL3-static
     lua
     embree
+    lbuffer
 )
 
 # ---------------------------------------------------------
@@ -119,7 +141,7 @@ if(NOT EMSCRIPTEN)
     FetchContent_MakeAvailable(googletest)
 
     # Unit Tests
-    add_executable(unit-tests test/lua_binding_test.cpp src/lua_binding.cpp src/embree_wrapper.cpp)
-    target_link_libraries(unit-tests PRIVATE gtest_main lua embree)
+    add_executable(unit-tests test/lua_binding_test.cpp test/lbuffer_test.cpp src/lua_binding.cpp src/embree_wrapper.cpp)
+    target_link_libraries(unit-tests PRIVATE gtest_main lua embree lbuffer)
     add_test(NAME unit-tests COMMAND unit-tests)
 endif()
