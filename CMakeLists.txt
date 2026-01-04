@@ -73,7 +73,18 @@ FetchContent_MakeAvailable(embree)
 # ---------------------------------------------------------
 # Main executable
 # ---------------------------------------------------------
-add_executable(lua-ray main.cpp)
+# ---------------------------------------------------------
+# Main executable
+# ---------------------------------------------------------
+# Gather source files
+set(SOURCES
+    src/main.cpp
+    src/app.cpp
+    src/lua_binding.cpp
+    src/embree_wrapper.cpp
+)
+
+add_executable(lua-ray ${SOURCES})
 
 # Emscripten固有の設定
 if(EMSCRIPTEN)
@@ -90,7 +101,7 @@ endif()
 target_link_libraries(lua-ray PRIVATE
     SDL3::SDL3-static
     lua
-    embree # ExternalProjectの時のような複雑なパス指定が不要になります
+    embree
 )
 
 # ---------------------------------------------------------
@@ -107,11 +118,8 @@ if(NOT EMSCRIPTEN)
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(googletest)
 
-    add_executable(lua-link-test test/lua_link_test.cpp)
-    target_link_libraries(lua-link-test PRIVATE gtest_main lua)
-    add_test(NAME lua-link-test COMMAND lua-link-test)
-
-    add_executable(embree-link-test test/embree_link_test.cpp)
-    target_link_libraries(embree-link-test PRIVATE gtest_main embree)
-    add_test(NAME embree-link-test COMMAND embree-link-test)
+    # Unit Tests
+    add_executable(unit-tests test/lua_binding_test.cpp src/lua_binding.cpp src/embree_wrapper.cpp)
+    target_link_libraries(unit-tests PRIVATE gtest_main lua embree)
+    add_test(NAME unit-tests COMMAND unit-tests)
 endif()

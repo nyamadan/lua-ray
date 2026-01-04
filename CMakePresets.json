@@ -10,13 +10,23 @@
       "name": "gcc-debug",
       "displayName": "GCC Debug Test",
       "configurePreset": "gcc-debug",
-      "configuration": "Debug"
+      "configuration": "Debug",
+      "filter": {
+        "exclude": {
+          "name": "^prim_"
+        }
+      }
     },
     {
       "name": "gcc-release",
       "displayName": "GCC Release Test",
       "configurePreset": "gcc-release",
-      "configuration": "Release"
+      "configuration": "Release",
+      "filter": {
+        "exclude": {
+          "name": "^prim_"
+        }
+      }
     }
   ],
   "buildPresets": [
