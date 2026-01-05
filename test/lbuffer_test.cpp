@@ -3,7 +3,7 @@ extern "C" {
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
-int luaopen_buffer(lua_State* L);
+#include "lbuffer.h"
 }
 
 class LbufferTest : public ::testing::Test {
@@ -48,10 +48,12 @@ TEST_F(LbufferTest, PackAndUnpack) {
     const char* script = R"(
         local B = require 'buffer'
         local b = B.new()
+        -- Pack data first
+        b:pack("<is", 42, "lua")
         -- Unpack
         local i, s = b:unpack(1, "<is")
-        assert(i == 42, "Integer mismatch")
-        assert(s == "lua", "String mismatch")
+        assert(i == 42, "Integer mismatch: " .. tostring(i))
+        assert(s == "lua", "String mismatch: " .. tostring(s))
     )";
     ASSERT_EQ(luaL_dostring(L, script), LUA_OK) << lua_tostring(L, -1);
 }
