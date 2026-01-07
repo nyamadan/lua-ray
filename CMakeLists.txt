@@ -64,6 +64,25 @@ target_include_directories(lbuffer PUBLIC ${lbuffer_src_SOURCE_DIR})
 target_link_libraries(lbuffer PRIVATE lua)
 
 # ---------------------------------------------------------
+# sol2 (v3)
+# ---------------------------------------------------------
+FetchContent_Declare(
+    sol2
+    GIT_REPOSITORY https://github.com/ThePhD/sol2.git
+    GIT_TAG main
+)
+FetchContent_GetProperties(sol2)
+if(NOT sol2_POPULATED)
+    FetchContent_Populate(sol2)
+    add_library(sol2 INTERFACE)
+    target_include_directories(sol2 INTERFACE ${sol2_SOURCE_DIR}/include)
+    target_link_libraries(sol2 INTERFACE lua)
+    # sol2 requires C++17, which is already set globally, but we can ensure it here
+    target_compile_features(sol2 INTERFACE cxx_std_17)
+endif()
+
+
+# ---------------------------------------------------------
 # Embree (FetchContent版)
 # ---------------------------------------------------------
 # Embree自体のオプションを事前に設定
@@ -124,6 +143,7 @@ target_link_libraries(lua-ray PRIVATE
     lua
     embree
     lbuffer
+    sol2
 )
 
 # ---------------------------------------------------------
@@ -141,7 +161,7 @@ if(NOT EMSCRIPTEN)
     FetchContent_MakeAvailable(googletest)
 
     # Unit Tests
-    add_executable(unit-tests test/lua_binding_test.cpp test/lbuffer_test.cpp src/lua_binding.cpp src/embree_wrapper.cpp)
-    target_link_libraries(unit-tests PRIVATE gtest_main lua embree lbuffer)
+    add_executable(unit-tests test/lua_binding_test.cpp test/lbuffer_test.cpp test/sol2_test.cpp src/lua_binding.cpp src/embree_wrapper.cpp)
+    target_link_libraries(unit-tests PRIVATE gtest_main lua embree lbuffer sol2)
     add_test(NAME unit-tests COMMAND unit-tests)
 endif()
