@@ -1,21 +1,27 @@
 ---
 trigger: model_decision
-description: when build or test the app.
+description: when build or test the app. References package.json scripts.
 ---
 
-1. Build the project
+1. Install dependencies (if needed)
 
 ```bash
-cmake --build build/gcc-debug
+pnpm install
 ```
 
-2. Ran the tests
+2. Build the project
 
 ```bash
-ctest --test-dir ./build/gcc-debug --exclude-regex "^prim_"
+pnpm run build
 ```
 
-3. Run the application
+3. Run the tests
+
+```bash
+pnpm run test
+```
+
+4. Run the application
 
 ```bash
 ./build/gcc-debug/lua-ray

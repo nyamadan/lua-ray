@@ -15,6 +15,7 @@ DEPS=(
     ninja-build
     python3
     gdb
+    lldb
     pkg-config
     cmake
     gnome-desktop-testing

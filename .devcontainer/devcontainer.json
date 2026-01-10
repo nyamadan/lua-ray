@@ -29,7 +29,8 @@
         "prettier.prettier-vscode",
         "ms-vscode.cmake-tools",
         "ms-vscode.cpptools",
-        "ms-vscode.cpptools-extension-pack"
+        "ms-vscode.cpptools-extension-pack",
+        "vadimcn.vscode-lldb"
       ]
     }
   }
