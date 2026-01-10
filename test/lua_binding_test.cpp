@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "../src/lua_binding.h"
+#include <sol/sol.hpp>
 
 // Define global context for testing if not linked with app.cpp
 // In unit tests we might want to mock this or ensure it's isolated.
@@ -11,38 +12,65 @@ Context g_ctx;
 class LuaBindingTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        L = luaL_newstate();
-        luaL_openlibs(L);
-        register_lua_api(L);
-        
         // Setup dummy context
         g_ctx.width = 10;
         g_ctx.height = 10;
         g_ctx.pitch = 10 * 4;
         g_ctx.pixels = malloc(g_ctx.pitch * g_ctx.height);
+        
+        // Init Lua
+        bind_lua(lua);
     }
 
     void TearDown() override {
-        lua_close(L);
-        free(g_ctx.pixels);
+        if (g_ctx.pixels) {
+            free(g_ctx.pixels);
+            g_ctx.pixels = nullptr;
+        }
+        // sol::state cleans up itself
     }
 
-    lua_State* L;
+    sol::state lua;
 };
 
 TEST_F(LuaBindingTest, DrawPixelBoundsCheck) {
     // Valid call
-    luaL_dostring(L, "api_draw_pixel(0, 0, 255, 0, 0)");
+    sol::protected_function_result result1 = lua.safe_script("api_draw_pixel(0, 0, 255, 0, 0)");
+    ASSERT_TRUE(result1.valid());
     
     // Out of bounds - should not crash
-    luaL_dostring(L, "api_draw_pixel(-1, 0, 255, 0, 0)");
-    luaL_dostring(L, "api_draw_pixel(100, 0, 255, 0, 0)");
+    sol::protected_function_result result2 = lua.safe_script("api_draw_pixel(-1, 0, 255, 0, 0)");
+    ASSERT_TRUE(result2.valid()); // It catches the error internally? No, returns valid status if no lua error.
+    // Our C++ function just checks bounds and does nothing if invalid, so no lua error raised.
+    
+    sol::protected_function_result result3 = lua.safe_script("api_draw_pixel(100, 0, 255, 0, 0)");
+    ASSERT_TRUE(result3.valid());
 }
 
 TEST_F(LuaBindingTest, EmbreeDeviceCreation) {
-    luaL_dostring(L, "device = api_embree_new_device()");
-    lua_getglobal(L, "device");
-    ASSERT_TRUE(lua_islightuserdata(L, -1));
-    
-    luaL_dostring(L, "api_embree_release_device(device)");
+    auto result = lua.safe_script(R"(
+        local device = EmbreeDevice.new()
+        assert(device)
+        local scene = device:create_scene()
+        assert(scene)
+    )");
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+}
+
+TEST_F(LuaBindingTest, EmbreeSceneOperations) {
+    auto result = lua.safe_script(R"(
+        local device = EmbreeDevice.new()
+        local scene = device:create_scene()
+        
+        -- Add sphere should not crash
+        scene:add_sphere(0, 0, 0, 1.0)
+        
+        scene:commit()
+        
+        -- Intersect
+        local hit, t, nx, ny, nz = scene:intersect(0, 0, 5, 0, 0, -1)
+        assert(hit == true)
+        assert(t < 5)
+    )");
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
 }

@@ -5,12 +5,12 @@ local height = 600
 
 function render()
     print("Initializing Embree from Lua...")
-    local device = api_embree_new_device()
-    local scene = api_embree_new_scene(device)
+    local device = EmbreeDevice.new()
+    local scene = device:create_scene()
 
     -- Create scene: Sphere at (0, 0, 0) with radius 0.5
-    api_embree_add_sphere(device, scene, 0.0, 0.0, 0.0, 0.5)
-    api_embree_commit_scene(scene)
+    scene:add_sphere(0.0, 0.0, 0.0, 0.5)
+    scene:commit()
 
     print("Rendering scene...")
 
@@ -34,7 +34,7 @@ function render()
             dx, dy, dz = dx/len, dy/len, dz/len
 
             -- Intersect
-            local hit, t, nx, ny, nz = api_embree_intersect(scene, ox, oy, oz, dx, dy, dz)
+            local hit, t, nx, ny, nz = scene:intersect(ox, oy, oz, dx, dy, dz)
 
             if hit then
                 -- Diffuse shading
@@ -50,10 +50,7 @@ function render()
     end
 
     print("Lua render finished.")
-    
-    -- Cleanup
-    api_embree_release_scene(scene)
-    api_embree_release_device(device)
+    -- Cleanup is handled automatically by Lua garbage collector and C++ destructors
 end
 
 -- Call the render function

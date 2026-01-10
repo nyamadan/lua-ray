@@ -1,16 +1,53 @@
 #pragma once
 #include <embree4/rtcore.h>
-extern "C" {
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
-}
+#include <vector>
+#include <tuple>
+#include <memory>
 
-// Embree Wrappers
-int api_embree_new_device(lua_State* L);
-int api_embree_new_scene(lua_State* L);
-int api_embree_add_sphere(lua_State* L);
-int api_embree_commit_scene(lua_State* L);
-int api_embree_intersect(lua_State* L);
-int api_embree_release_scene(lua_State* L);
-int api_embree_release_device(lua_State* L);
+// RAII Wrapper for Embree Device
+class EmbreeDevice {
+public:
+    EmbreeDevice();
+    ~EmbreeDevice();
+
+    // Prevent copying
+    EmbreeDevice(const EmbreeDevice&) = delete;
+    EmbreeDevice& operator=(const EmbreeDevice&) = delete;
+
+    // Allow moving
+    EmbreeDevice(EmbreeDevice&& other) noexcept;
+    EmbreeDevice& operator=(EmbreeDevice&& other) noexcept;
+
+    RTCDevice get() const { return device; }
+
+private:
+    RTCDevice device;
+};
+
+// RAII Wrapper for Embree Scene
+class EmbreeScene {
+public:
+    EmbreeScene(EmbreeDevice& device); // Keep reference to device wrapper to ensure ordering? Or just raw device 
+    // Actually, rtcNewScene takes a device, so we need the raw device. 
+    // Ideally we keep the device alive, but for now let's assume usage pattern is correct or use shared_ptr if needed.
+    // For simplicity in this step, we take the raw pointer or reference. 
+    // Let's take EmbreeDevice& to imply dependency.
+
+    ~EmbreeScene();
+
+    // Prevent copying
+    EmbreeScene(const EmbreeScene&) = delete;
+    EmbreeScene& operator=(const EmbreeScene&) = delete;
+
+    // Allow moving (if needed) - simplified for now
+
+    void add_sphere(float cx, float cy, float cz, float r);
+    void commit();
+    
+    // Return hit, t, nx, ny, nz
+    std::tuple<bool, float, float, float, float> intersect(float ox, float oy, float oz, float dx, float dy, float dz);
+
+private:
+    RTCDevice device; // We might need to store device if we create geometries later, but add_sphere uses it.
+    RTCScene scene;
+};

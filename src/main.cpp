@@ -14,9 +14,9 @@ int main(int argc, char* argv[]) {
     SDL_LockTexture(g_ctx.texture, NULL, &g_ctx.pixels, &g_ctx.pitch);
 
     // Init Lua and run script
-    lua_State* L = init_lua();
-    run_script(L, argc, argv);
-    lua_close(L);
+    sol::state lua;
+    bind_lua(lua);
+    run_script(lua, argc, argv);
     
     // Unlock texture
     SDL_UnlockTexture(g_ctx.texture);

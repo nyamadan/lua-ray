@@ -3,30 +3,57 @@
 #include <limits>
 #include <cmath>
 
-int api_embree_new_device(lua_State* L) {
-    RTCDevice device = rtcNewDevice(NULL);
+// ----------------------------------------------------------------
+// EmbreeDevice
+// ----------------------------------------------------------------
+
+EmbreeDevice::EmbreeDevice() : device(nullptr) {
+    device = rtcNewDevice(NULL);
     if (!device) {
         std::cerr << "Failed to create Embree device" << std::endl;
-        return 0;
+        // In a real app, throw exception or handle error
     }
-    lua_pushlightuserdata(L, device);
-    return 1;
 }
 
-int api_embree_new_scene(lua_State* L) {
-    RTCDevice device = (RTCDevice)lua_touserdata(L, 1);
-    RTCScene scene = rtcNewScene(device);
-    lua_pushlightuserdata(L, scene);
-    return 1;
+EmbreeDevice::~EmbreeDevice() {
+    if (device) {
+        rtcReleaseDevice(device);
+        device = nullptr;
+    }
 }
 
-int api_embree_add_sphere(lua_State* L) {
-    RTCDevice device = (RTCDevice)lua_touserdata(L, 1);
-    RTCScene scene = (RTCScene)lua_touserdata(L, 2);
-    float cx = luaL_checknumber(L, 3);
-    float cy = luaL_checknumber(L, 4);
-    float cz = luaL_checknumber(L, 5);
-    float r = luaL_checknumber(L, 6);
+EmbreeDevice::EmbreeDevice(EmbreeDevice&& other) noexcept : device(other.device) {
+    other.device = nullptr;
+}
+
+EmbreeDevice& EmbreeDevice::operator=(EmbreeDevice&& other) noexcept {
+    if (this != &other) {
+        if (device) rtcReleaseDevice(device);
+        device = other.device;
+        other.device = nullptr;
+    }
+    return *this;
+}
+
+// ----------------------------------------------------------------
+// EmbreeScene
+// ----------------------------------------------------------------
+
+EmbreeScene::EmbreeScene(EmbreeDevice& dev) : device(dev.get()), scene(nullptr) {
+    if (device) {
+        scene = rtcNewScene(device);
+    }
+}
+
+EmbreeScene::~EmbreeScene() {
+    if (scene) {
+        rtcReleaseScene(scene);
+        scene = nullptr;
+    }
+}
+
+void EmbreeScene::add_sphere(float cx, float cy, float cz, float r) {
+    if (!device || !scene) return;
 
     RTCGeometry geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_SPHERE_POINT);
     float* buffer = (float*)rtcSetNewGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT4, sizeof(float) * 4, 1);
@@ -38,23 +65,16 @@ int api_embree_add_sphere(lua_State* L) {
     rtcCommitGeometry(geom);
     rtcAttachGeometry(scene, geom);
     rtcReleaseGeometry(geom);
-    return 0;
 }
 
-int api_embree_commit_scene(lua_State* L) {
-    RTCScene scene = (RTCScene)lua_touserdata(L, 1);
-    rtcCommitScene(scene);
-    return 0;
+void EmbreeScene::commit() {
+    if (scene) {
+        rtcCommitScene(scene);
+    }
 }
 
-int api_embree_intersect(lua_State* L) {
-    RTCScene scene = (RTCScene)lua_touserdata(L, 1);
-    float ox = luaL_checknumber(L, 2);
-    float oy = luaL_checknumber(L, 3);
-    float oz = luaL_checknumber(L, 4);
-    float dx = luaL_checknumber(L, 5);
-    float dy = luaL_checknumber(L, 6);
-    float dz = luaL_checknumber(L, 7);
+std::tuple<bool, float, float, float, float> EmbreeScene::intersect(float ox, float oy, float oz, float dx, float dy, float dz) {
+    if (!scene) return {false, 0.0f, 0.0f, 0.0f, 0.0f};
 
     RTCRayHit rayhit;
     rayhit.ray.org_x = ox; rayhit.ray.org_y = oy; rayhit.ray.org_z = oz;
@@ -68,32 +88,17 @@ int api_embree_intersect(lua_State* L) {
     rtcIntersect1(scene, &rayhit);
 
     if (rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID) {
-        lua_pushboolean(L, true);
-        lua_pushnumber(L, rayhit.ray.tfar); // t
-        
         // Normalize normal
         float nx = rayhit.hit.Ng_x;
         float ny = rayhit.hit.Ng_y;
         float nz = rayhit.hit.Ng_z;
-        float len = sqrt(nx*nx + ny*ny + nz*nz);
-        lua_pushnumber(L, nx/len);
-        lua_pushnumber(L, ny/len);
-        lua_pushnumber(L, nz/len);
-        return 5;
+        float len = std::sqrt(nx*nx + ny*ny + nz*nz);
+        if (len > 0) {
+            nx /= len; ny /= len; nz /= len;
+        }
+        return {true, rayhit.ray.tfar, nx, ny, nz};
     } else {
-        lua_pushboolean(L, false);
-        return 1;
+        return {false, 0.0f, 0.0f, 0.0f, 0.0f};
     }
 }
 
-int api_embree_release_scene(lua_State* L) {
-    RTCScene scene = (RTCScene)lua_touserdata(L, 1);
-    rtcReleaseScene(scene);
-    return 0;
-}
-
-int api_embree_release_device(lua_State* L) {
-    RTCDevice device = (RTCDevice)lua_touserdata(L, 1);
-    rtcReleaseDevice(device);
-    return 0;
-}
