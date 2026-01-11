@@ -58,6 +58,9 @@ add_library(lbuffer STATIC
     ${lbuffer_src_SOURCE_DIR}/lbufflib.c
 )
 target_compile_options(lbuffer PRIVATE -w -fpermissive) # Suppress warnings (extern-init), permissive for pointer types
+if(EMSCRIPTEN)
+    target_compile_options(lbuffer PRIVATE -Wno-error=incompatible-pointer-types)
+endif()
 target_compile_definitions(lbuffer PRIVATE "LUA_QS=\"'%s'\"")
 target_include_directories(lbuffer PUBLIC ${lbuffer_src_SOURCE_DIR})
 # lua headers are needed for lbuffer

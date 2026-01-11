@@ -1,48 +1,74 @@
-# Project Overview: lua-ray
+# プロジェクト概要：lua-ray
 
-## Purpose
-The `lua-ray` project is a C++/WebAssembly application that integrates Lua scripting with ray tracing capabilities using Embree. It leverages SDL3 for windowing and input handling, making it suitable for both native and web-based environments.
+## 目的
 
-## Tech Stack
-- **C++17**: Core language for the application.
-- **SDL3**: Used for windowing and input handling.
-- **Lua 5.4.6**: Embedded scripting language for extensibility.
-- **Embree 4.4.0**: High-performance ray tracing library.
-- **Emscripten**: For compiling to WebAssembly (WASM) to enable web deployment.
-- **CMake**: Build system for managing dependencies and compilation.
-- **Node.js/pnpm**: For managing JavaScript dependencies and tooling.
-- **Google Test**: For unit testing (excluded in WebAssembly builds).
+`lua-ray`プロジェクトは、Embreeを使用したレイトレーシング機能とLuaスクリプティングを統合したC++/WebAssemblyアプリケーションです。ウィンドウ処理と入力処理にSDL3を活用し、ネイティブ環境とWebベース環境の両方に適しています。
 
-## Project Structure
-- `main.cpp`: Entry point for the application.
-- `CMakeLists.txt`: Build configuration for CMake.
-- `package.json`: Node.js package management.
-- `.emsdk/`: Emscripten SDK for WebAssembly compilation.
-- `build/`: Output directory for CMake builds.
-- `test/`: Contains test files for Lua and Embree integration.
+## 技術スタック
 
-## Key Features
-- **Cross-platform**: Supports both native and web deployment via WebAssembly.
-- **Scripting**: Embedded Lua for runtime scripting and extensibility.
-- **Ray Tracing**: Uses Embree for high-performance ray tracing.
-- **Testing**: Google Test framework for unit testing (native builds only).
+- **C++17**: アプリケーションのコア言語。
+- **SDL3**: ウィンドウ処理と入力処理に使用。
+- **Lua 5.4.6**: 拡張性のための組み込みスクリプト言語。
+- **Embree 4.4.0**: 高性能レイトレーシングライブラリ。
+- **Emscripten**: Webデプロイを可能にするためのWebAssembly（WASM）へのコンパイル用。
+- **CMake**: 依存関係とコンパイルを管理するためのビルドシステム。
+- **Node.js/pnpm**: JavaScript依存関係とツールの管理用。
+- **Google Test**: ユニットテスト用（WebAssemblyビルドでは除外）。
 
-## Build and Development Commands
-- **Build**: `cmake --build ./build/gcc-debug --parallel 4 --config Debug --target all`
-- **Run**: `./build/gcc-debug/lua-ray`
-- **Test**: `ctest --test-dir ./build/gcc-debug --exclude-regex "^prim"`
-- **Install Dependencies**: `pnpm install`
+## プロジェクト構造
 
-## Coding Style
-- **Indentation**: 4 spaces.
-- **Naming**: Descriptive and clear variable and function names in camelCase.
-- **Error Handling**: Proper error handling for SDL operations.
+- `src/`: ソースコードディレクトリ
+  - `main.cpp`: アプリケーションのエントリーポイント
+  - `app.cpp`, `app.h`: アプリケーションのメインロジック
+  - `lua_binding.cpp`, `lua_binding.h`: Lua統合とバインディング
+  - `embree_wrapper.cpp`, `embree_wrapper.h`: Embreeレイトレーシングのラッパー
+  - `context.h`: アプリケーションコンテキスト定義
+- `test/`: テストファイルディレクトリ
+  - `lua_binding_test.cpp`: Luaバインディングのユニットテスト
+  - `lbuffer_test.cpp`: lbufferライブラリのテスト
+  - `sol2_test.cpp`: sol2統合のテスト
+  - `embree_link_test.cpp`: Embreeリンクのテスト
+  - `lua_link_test.cpp`: Luaリンクのテスト
+- `CMakeLists.txt`: CMakeのビルド設定
+- `CMakePresets.json`: CMakeプリセット定義
+- `package.json`: Node.jsパッケージ管理
+- `.emsdk/`: WebAssemblyコンパイル用のEmscripten SDK
+- `build/`: CMakeビルドの出力ディレクトリ
 
-## Testing Guidelines
-- **Framework**: CTest with Google Test.
-- **Execution**: Run tests using `ctest` in the build directory.
+## 主な機能
 
-## Commit Guidelines
-- Use conventional commit messages.
-- Reference related issues in commit descriptions.
-- Ensure code compiles successfully before submitting a PR.
+- **クロスプラットフォーム**: WebAssembly経由でネイティブとWebデプロイの両方をサポート。
+- **スクリプティング**: ランタイムスクリプティングと拡張性のための組み込みLua。
+- **レイトレーシング**: 高性能レイトレーシングのためにEmbreeを使用。
+- **テスト**: ユニットテスト用のGoogle Testフレームワーク（ネイティブビルドのみ）。
+
+## ビルドと開発コマンド
+
+- **ビルド (GCC)**: `cmake --build --preset gcc-debug`
+- **ビルド (Emscripten)**: `cmake --build --preset emscripten-debug`
+- **実行**: `./build/gcc-debug/lua-ray`
+- **テスト**: `ctest --preset gcc-debug --output-on-failure`
+- **依存関係のインストール**: `pnpm install`
+
+または、package.jsonのスクリプトを使用：
+
+- **ビルド**: `pnpm build`
+- **ビルド (Emscripten)**: `pnpm build:emscripten`
+- **テスト**: `pnpm test`
+
+## コーディングスタイル
+
+- **インデント**: 4つのスペース。
+- **命名**: キャメルケースで説明的で明確な変数名と関数名。
+- **エラー処理**: SDL操作の適切なエラー処理。
+
+## テストガイドライン
+
+- **フレームワーク**: Google TestとCTest。
+- **実行**: ビルドディレクトリで`ctest`を使用してテストを実行。
+
+## コミットガイドライン
+
+- 従来型のコミットメッセージを使用。
+- コミット説明で関連する問題を参照。
+- PRを提出する前にコードが正常にコンパイルされることを確認。

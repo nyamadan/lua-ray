@@ -4,18 +4,35 @@
 
 このプロジェクトは、C++/WebAssemblyの構造とNode.jsツールチェーンに従っています：
 
-- `main.cpp`: SDL3を使用したコアアプリケーションのエントリーポイント
+- `src/`: ソースコードディレクトリ
+  - `main.cpp`: SDL3を使用したアプリケーションのエントリーポイント
+  - `app.cpp`, `app.h`: アプリケーションのメインロジック
+  - `lua_binding.cpp`, `lua_binding.h`: Lua統合とバインディング
+  - `embree_wrapper.cpp`, `embree_wrapper.h`: Embreeレイトレーシングのラッパー
+  - `context.h`: アプリケーションコンテキスト定義
+- `test/`: テストファイルディレクトリ
+  - `lua_binding_test.cpp`: Luaバインディングのユニットテスト
+  - `lbuffer_test.cpp`, `sol2_test.cpp`: ライブラリ統合テスト
+  - `embree_link_test.cpp`, `lua_link_test.cpp`: リンクテスト
 - `CMakeLists.txt`: C++アプリケーションのビルド設定
+- `CMakePresets.json`: CMakeプリセット定義
 - `package.json`: pnpmによるNode.jsパッケージ管理
 - `.emsdk/`: WebAssemblyコンパイル用のEmscripten SDK
 - `build/`: CMakeビルド出力ディレクトリ
 
 ## ビルド、テスト、開発コマンド
 
-- `cmake --build ./build/gcc-debug `: プロジェクトのビルド
-- `ctest --test-dir ./build/gcc-debug --exclude-regex "^prim_"`
+- `cmake --build --preset gcc-debug`: プロジェクトのビルド (GCC)
+- `cmake --build --preset emscripten-debug`: プロジェクトのビルド (Emscripten)
+- `ctest --preset gcc-debug --output-on-failure`: テストの実行
 - `./build/gcc-debug/lua-ray`: コンパイルされたアプリケーションの実行
 - `pnpm install`: Node.js依存関係のインストール
+
+または、package.jsonのスクリプトを使用：
+
+- `pnpm build`: プロジェクトのビルド (GCC)
+- `pnpm build:emscripten`: プロジェクトのビルド (Emscripten)
+- `pnpm test`: テストの実行
 
 ## コーディングスタイルと命名規則
 

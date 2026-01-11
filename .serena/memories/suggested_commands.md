@@ -1,43 +1,62 @@
-# Suggested Commands for lua-ray Development
+# lua-ray開発のための推奨コマンド
 
-## Build Commands
-- **Build the Project**:
+## ビルドコマンド
+
+- **プロジェクトのビルド (GCC)**:
   ```bash
-  cmake --build ./build/gcc-debug --parallel 4 --config Debug --target all
+  cmake --build --preset gcc-debug
   ```
-- **Run the Application**:
+  または:
+  ```bash
+  pnpm build
+  ```
+- **プロジェクトのビルド (Emscripten)**:
+  ```bash
+  cmake --build --preset emscripten-debug
+  ```
+  または:
+  ```bash
+  pnpm build:emscripten
+  ```
+- **アプリケーションの実行**:
   ```bash
   ./build/gcc-debug/lua-ray
   ```
-- **Run Tests**:
+- **テストの実行**:
   ```bash
-  ctest --test-dir ./build/gcc-debug --exclude-regex "^prim"
+  ctest --preset gcc-debug --output-on-failure
+  ```
+  または:
+  ```bash
+  pnpm test
   ```
 
-## Dependency Management
-- **Install Node.js Dependencies**:
+## 依存関係管理
+
+- **Node.js依存関係のインストール**:
   ```bash
   pnpm install
   ```
 
-## Utility Commands
-- **List Files**:
+## ユーティリティコマンド
+
+- **ファイルのリスト表示**:
   ```bash
   ls
   ```
-- **Change Directory**:
+- **ディレクトリの変更**:
   ```bash
   cd <directory>
   ```
-- **Search for Files**:
+- **ファイルの検索**:
   ```bash
   find . -name "filename"
   ```
-- **Search for Patterns in Files**:
+- **ファイル内のパターン検索**:
   ```bash
   grep "pattern" <file>
   ```
-- **Git Commands**:
+- **Gitコマンド**:
   ```bash
   git status
   git add <file>
@@ -45,53 +64,61 @@
   git push
   ```
 
-## Testing and Debugging
-- **Run Specific Test**:
+## テストとデバッグ
+
+- **特定のテストの実行**:
   ```bash
-  ctest -R <test_name>
+  ctest --preset gcc-debug -R <test_name>
   ```
-- **Debug Build**:
+- **デバッグビルド**:
   ```bash
-  cmake --build ./build/gcc-debug --config Debug
+  cmake --build --preset gcc-debug
+  ```
+- **リリースビルド**:
+  ```bash
+  cmake --build --preset gcc-release
   ```
 
-## Code Style and Formatting
-- **Indentation**: Use 4 spaces for C++ code.
-- **Naming**: Use camelCase for variables and functions.
-- **Error Handling**: Ensure proper error handling for SDL operations.
+## コードスタイルとフォーマット
 
-## Version Control
-- **Check Git Status**:
+- **インデント**: C++コードには4つのスペースを使用。
+- **命名**: 変数と関数にはキャメルケースを使用。
+- **エラー処理**: SDL操作の適切なエラー処理を確実に実施。
+
+## バージョン管理
+
+- **Gitステータスの確認**:
   ```bash
   git status
   ```
-- **Add Files to Git**:
+- **Gitへのファイル追加**:
   ```bash
   git add <file>
   ```
-- **Commit Changes**:
+- **変更のコミット**:
   ```bash
   git commit -m "message"
   ```
-- **Push Changes**:
+- **変更のプッシュ**:
   ```bash
   git push
   ```
 
-## System Commands
-- **Check Current Directory**:
+## システムコマンド
+
+- **現在のディレクトリの確認**:
   ```bash
   pwd
   ```
-- **List Directory Contents**:
+- **ディレクトリ内容のリスト表示**:
   ```bash
   ls -la
   ```
-- **Remove Files/Directories**:
+- **ファイル/ディレクトリの削除**:
   ```bash
   rm -rf <file/directory>
   ```
-- **Create Directory**:
+- **ディレクトリの作成**:
   ```bash
   mkdir <directory>
   ```

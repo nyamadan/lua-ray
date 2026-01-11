@@ -1,51 +1,65 @@
-# Task Completion Checklist for lua-ray
+# lua-rayのタスク完了チェックリスト
 
-## Before Starting a Task
-1. **Understand the Task**: Ensure you fully understand the task requirements and objectives.
-2. **Review Documentation**: Check the project documentation (`AGENTS.md`, `README.md`, etc.) for relevant guidelines.
-3. **Check Dependencies**: Ensure all dependencies are installed and up-to-date.
+## タスク開始前
 
-## During Task Execution
-1. **Follow Coding Style**: Adhere to the project's coding style and conventions.
-2. **Write Tests**: Write unit tests for new features or bug fixes. Ensure tests cover edge cases.
-3. **Document Changes**: Update documentation to reflect any changes made to the codebase.
-4. **Handle Errors**: Implement proper error handling for all operations, especially SDL and Lua interactions.
+1. **タスクの理解**: タスクの要件と目的を完全に理解していることを確認してください。
+2. **ドキュメントのレビュー**: 関連するガイドラインについてプロジェクトドキュメント（`AGENTS.md`、`README.md`など）を確認してください。
+3. **依存関係の確認**: すべての依存関係がインストールされ、最新であることを確認してください。
 
-## After Completing a Task
-1. **Run Tests**: Execute the test suite to ensure all tests pass.
+## タスク実行中
+
+1. **コーディングスタイルの遵守**: プロジェクトのコーディングスタイルと規約に従ってください。
+2. **テストの作成**: 新機能やバグ修正のためのユニットテストを作成してください。テストがエッジケースをカバーしていることを確認してください。
+3. **変更の文書化**: コードベースに加えられた変更を反映するようにドキュメントを更新してください。
+4. **エラーの処理**: 特にSDLとLuaの相互作用について、すべての操作に対して適切なエラー処理を実装してください。
+
+## タスク完了後
+
+1. **テストの実行**: すべてのテストが合格することを確認するためにテストスイートを実行してください。
    ```bash
-   ctest --test-dir ./build/gcc-debug --exclude-regex "^prim"
+   ctest --preset gcc-debug --output-on-failure
    ```
-2. **Build the Project**: Ensure the project builds successfully without errors.
+   または:
    ```bash
-   cmake --build ./build/gcc-debug --parallel 4 --config Debug --target all
+   pnpm test
    ```
-3. **Run the Application**: Verify that the application runs as expected.
+2. **プロジェクトのビルド**: プロジェクトがエラーなく正常にビルドされることを確認してください。
+   ```bash
+   cmake --build --preset gcc-debug
+   ```
+   または:
+   ```bash
+   pnpm build
+   ```
+3. **アプリケーションの実行**: アプリケーションが期待通りに動作することを確認してください。
    ```bash
    ./build/gcc-debug/lua-ray
    ```
-4. **Check for Warnings**: Address any compiler warnings or static analysis issues.
-5. **Review Changes**: Conduct a self-review of the changes to ensure they meet the project's standards.
+4. **警告の確認**: コンパイラの警告や静的解析の問題に対処してください。
+5. **変更のレビュー**: 変更がプロジェクトの基準を満たしていることを確認するために、変更の自己レビューを実施してください。
 
-## Before Submitting a Pull Request
-1. **Update Documentation**: Ensure all documentation is up-to-date and reflects the changes made.
-2. **Commit Messages**: Use conventional commit messages to describe changes. Reference related issues.
-3. **Push Changes**: Push the changes to the remote repository.
+## プルリクエスト提出前
+
+1. **ドキュメントの更新**: すべてのドキュメントが最新で、加えられた変更を反映していることを確認してください。
+2. **コミットメッセージ**: 変更を説明するために従来型のコミットメッセージを使用してください。関連する問題を参照してください。
+3. **変更のプッシュ**: リモートリポジトリに変更をプッシュしてください。
    ```bash
    git push
    ```
-4. **Create Pull Request**: Submit a pull request with a clear description of the changes and their purpose.
-5. **Address Feedback**: Respond to any feedback from code reviews promptly and thoroughly.
+4. **プルリクエストの作成**: 変更とその目的の明確な説明を含むプルリクエストを提出してください。
+5. **フィードバックへの対応**: コードレビューからのフィードバックに迅速かつ徹底的に対応してください。
 
-## Additional Checks
-- **Performance**: Ensure the changes do not negatively impact performance. Use profiling tools if necessary.
-- **Security**: Verify that the changes do not introduce security vulnerabilities.
-- **Compatibility**: Ensure the changes are compatible with the project's target platforms (native and WebAssembly).
-- **Code Quality**: Use static analysis tools to check for code quality issues.
+## 追加チェック
 
-## Post-Submission
-1. **Monitor CI/CD**: Check the continuous integration and deployment pipelines for any issues.
-2. **Address Issues**: Fix any issues identified during the CI/CD process.
-3. **Update Documentation**: Update any additional documentation based on feedback or changes.
+- **パフォーマンス**: 変更がパフォーマンスに悪影響を与えないことを確認してください。必要に応じてプロファイリングツールを使用してください。
+- **セキュリティ**: 変更がセキュリティ脆弱性を導入しないことを確認してください。
+- **互換性**: 変更がプロジェクトのターゲットプラットフォーム（ネイティブとWebAssembly）と互換性があることを確認してください。
+- **コード品質**: コード品質の問題をチェックするために静的解析ツールを使用してください。
 
-By following this checklist, you can ensure that your tasks are completed thoroughly and meet the project's standards.
+## 提出後
+
+1. **CI/CDの監視**: 継続的インテグレーションとデプロイメントパイプラインで問題がないか確認してください。
+2. **問題への対処**: CI/CDプロセス中に特定された問題を修正してください。
+3. **ドキュメントの更新**: フィードバックや変更に基づいて追加のドキュメントを更新してください。
+
+このチェックリストに従うことで、タスクが徹底的に完了し、プロジェクトの基準を満たすことを確実にできます。

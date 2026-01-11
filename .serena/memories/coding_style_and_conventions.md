@@ -1,52 +1,63 @@
-# Coding Style and Conventions for lua-ray
+# lua-rayのコーディングスタイルと規約
 
-## General Guidelines
-- **Language**: C++17 is the primary language for the project.
-- **Indentation**: Use 4 spaces for indentation. Do not use tabs.
-- **Naming Conventions**: Use descriptive and clear names for variables, functions, and classes. Follow camelCase for variables and functions (e.g., `myVariable`, `myFunction`).
-- **Error Handling**: Ensure proper error handling, especially for SDL operations. Use exceptions or return codes as appropriate.
+## 一般的なガイドライン
 
-## Code Structure
-- **Header Files**: Use header files to declare functions, classes, and variables. Include guards to prevent multiple inclusions.
-- **Source Files**: Implement functions and classes in source files. Keep implementations concise and focused.
-- **Comments**: Use comments to explain complex logic, assumptions, and important details. Avoid redundant comments.
+- **言語**: C++17がプロジェクトの主要言語です。
+- **インデント**: インデントには4つのスペースを使用してください。タブは使用しないでください。
+- **命名規則**: 変数、関数、クラスには説明的で明確な名前を使用してください。変数と関数にはキャメルケースを使用してください（例：`myVariable`、`myFunction`）。
+- **エラー処理**: 特にSDL操作については適切なエラー処理を確実に行ってください。必要に応じて例外またはリターンコードを使用してください。
 
-## SDL Operations
-- **Initialization**: Always check the return values of SDL initialization functions. Handle errors gracefully.
-- **Resource Management**: Use RAII (Resource Acquisition Is Initialization) for managing SDL resources like windows, renderers, and textures.
-- **Event Handling**: Implement proper event handling loops for user input and system events.
+## コード構造
 
-## Lua Integration
-- **Embedding Lua**: Use the Lua C API to embed Lua scripts in the application. Ensure proper error handling for Lua operations.
-- **Scripting**: Provide clear documentation for Lua scripts and their integration points with the C++ code.
+- **ヘッダーファイル**: ヘッダーファイルを使用して関数、クラス、変数を宣言してください。複数のインクルードを防ぐためにインクルードガードを使用してください。
+- **ソースファイル**: ソースファイルで関数とクラスを実装してください。実装は簡潔で焦点を絞ったものにしてください。
+- **コメント**: 複雑なロジック、前提条件、重要な詳細を説明するためにコメントを使用してください。冗長なコメントは避けてください。
 
-## Embree Integration
-- **Ray Tracing**: Use Embree for high-performance ray tracing. Follow Embree's best practices for scene setup and rendering.
-- **Error Handling**: Check for errors in Embree operations and handle them appropriately.
+## SDL操作
 
-## Testing
-- **Unit Testing**: Use Google Test for writing unit tests. Ensure tests are comprehensive and cover edge cases.
-- **Test Execution**: Run tests using the `ctest` command in the build directory. Exclude tests as necessary using regex patterns.
+- **初期化**: SDL初期化関数の戻り値を常に確認してください。エラーは適切に処理してください。
+- **リソース管理**: ウィンドウ、レンダラー、テクスチャなどのSDLリソースを管理するためにRAII（Resource Acquisition Is Initialization）を使用してください。
+- **イベント処理**: ユーザー入力とシステムイベントのための適切なイベント処理ループを実装してください。
 
-## Documentation
-- **Code Documentation**: Use Doxygen-style comments for documenting functions, classes, and modules.
-- **Project Documentation**: Maintain up-to-date documentation in markdown files (e.g., `AGENTS.md`).
+## Lua統合
 
-## Version Control
-- **Commit Messages**: Use conventional commit messages to describe changes. Reference related issues in commit descriptions.
-- **Branching**: Follow a consistent branching strategy. Use feature branches for new features and bug fixes.
-- **Pull Requests**: Ensure code compiles successfully and passes all tests before submitting a pull request.
+- **Luaの組み込み**: Lua C APIを使用してアプリケーションにLuaスクリプトを組み込んでください。Lua操作の適切なエラー処理を確実に行ってください。
+- **スクリプティング**: LuaスクリプトとそれらのC++コードとの統合ポイントについて明確なドキュメントを提供してください。
 
-## Code Reviews
-- **Review Process**: Conduct thorough code reviews for all changes. Ensure code adheres to the project's style and conventions.
-- **Feedback**: Provide constructive feedback during code reviews. Address feedback promptly and thoroughly.
+## Embree統合
 
-## Continuous Integration
-- **CI/CD**: Set up continuous integration and deployment pipelines to automate testing and deployment.
-- **Automated Testing**: Run automated tests on every commit to ensure code quality and stability.
+- **レイトレーシング**: 高性能レイトレーシングのためにEmbreeを使用してください。シーンのセットアップとレンダリングについてEmbreeのベストプラクティスに従ってください。
+- **エラー処理**: Embree操作のエラーをチェックし、適切に処理してください。
 
-## Best Practices
-- **Modularity**: Keep code modular and reusable. Avoid tight coupling between components.
-- **Performance**: Optimize critical sections of the code. Use profiling tools to identify bottlenecks.
-- **Security**: Follow secure coding practices. Sanitize inputs and handle errors securely.
-- **Maintainability**: Write code that is easy to understand, maintain, and extend. Avoid overly complex solutions.
+## テスト
+
+- **ユニットテスト**: ユニットテストを書くためにGoogle Testを使用してください。テストが包括的でエッジケースをカバーしていることを確認してください。
+- **テスト実行**: ビルドディレクトリで`ctest`コマンドを使用してテストを実行してください。必要に応じて正規表現パターンを使用してテストを除外してください。
+
+## ドキュメント
+
+- **コードドキュメント**: 関数、クラス、モジュールを文書化するためにDoxygen形式のコメントを使用してください。
+- **プロジェクトドキュメント**: マークダウンファイル（例：`AGENTS.md`）で最新のドキュメントを維持してください。
+
+## バージョン管理
+
+- **コミットメッセージ**: 変更を説明するために従来型のコミットメッセージを使用してください。コミット説明で関連する問題を参照してください。
+- **ブランチング**: 一貫したブランチング戦略に従ってください。新機能とバグ修正にはフィーチャーブランチを使用してください。
+- **プルリクエスト**: プルリクエストを提出する前に、コードが正常にコンパイルされ、すべてのテストに合格することを確認してください。
+
+## コードレビュー
+
+- **レビュープロセス**: すべての変更について徹底的なコードレビューを実施してください。コードがプロジェクトのスタイルと規約に準拠していることを確認してください。
+- **フィードバック**: コードレビュー中に建設的なフィードバックを提供してください。フィードバックには迅速かつ徹底的に対応してください。
+
+## 継続的インテグレーション
+
+- **CI/CD**: テストとデプロイを自動化するために継続的インテグレーションとデプロイメントパイプラインを設定してください。
+- **自動テスト**: コード品質と安定性を確保するために、すべてのコミットで自動テストを実行してください。
+
+## ベストプラクティス
+
+- **モジュール性**: コードをモジュール化し、再利用可能にしてください。コンポーネント間の密結合を避けてください。
+- **パフォーマンス**: コードの重要なセクションを最適化してください。ボトルネックを特定するためにプロファイリングツールを使用してください。
+- **セキュリティ**: 安全なコーディングプラクティスに従ってください。入力をサニタイズし、エラーを安全に処理してください。
+- **保守性**: 理解、保守、拡張が容易なコードを書いてください。過度に複雑なソリューションは避けてください。
