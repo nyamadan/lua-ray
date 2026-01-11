@@ -8,6 +8,8 @@
   "private": true,
   "packageManager": "pnpm@10.27.0",
   "scripts": {
+    "configure": "cmake --preset gcc-debug",
+    "configure:emscripten": "cmake --preset emscripten-debug",
     "build": "cmake --build --preset gcc-debug --target all",
     "build:emscripten": "cmake --build --preset emscripten-debug --target all",
     "test": "ctest --preset gcc-debug --output-on-failure"

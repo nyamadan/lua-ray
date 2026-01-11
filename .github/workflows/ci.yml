@@ -85,11 +85,17 @@ jobs:
           ./emsdk install latest
           ./emsdk activate latest
 
+      - name: Configure (GCC)
+        run: pnpm run configure
+
       - name: Build (GCC)
         run: pnpm run build
 
       - name: Test
         run: pnpm run test
+
+      - name: Configure (Emscripten)
+        run: pnpm run configure:emscripten
 
       - name: Build (Emscripten)
         run: pnpm run build:emscripten
