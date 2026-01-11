@@ -51,7 +51,19 @@ FetchContent_Declare(
     GIT_TAG 1031755e5bd1cbf64f0761c2d5c402a678226768
     GIT_SHALLOW TRUE
 )
-FetchContent_MakeAvailable(lbuffer_src)
+
+# Populate lbuffer and apply patch
+FetchContent_GetProperties(lbuffer_src)
+if(NOT lbuffer_src_POPULATED)
+    FetchContent_Populate(lbuffer_src)
+    # Apply patch to fix little-endian bug
+    execute_process(
+        COMMAND git apply --ignore-whitespace --reject ${CMAKE_SOURCE_DIR}/patches/lbuffer-fix-little-endian.patch
+        WORKING_DIRECTORY ${lbuffer_src_SOURCE_DIR}
+        RESULT_VARIABLE PATCH_RESULT
+        ERROR_QUIET
+    )
+endif()
 
 add_library(lbuffer STATIC
     ${lbuffer_src_SOURCE_DIR}/lbuffer.c
