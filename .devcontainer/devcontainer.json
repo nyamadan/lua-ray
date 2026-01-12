@@ -21,6 +21,11 @@
       "source": "${localWorkspaceFolderBasename}_pnpmstore",
       "target": "${containerWorkspaceFolder}/.pnpm-store",
       "type": "volume"
+    },
+    {
+      "source": "${localWorkspaceFolderBasename}_ccache",
+      "target": "${containerWorkspaceFolder}/.ccache",
+      "type": "volume"
     }
   ],
   "customizations": {
