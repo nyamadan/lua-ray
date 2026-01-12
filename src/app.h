@@ -1,9 +1,7 @@
 #pragma once
 #include <SDL3/SDL.h>
-#include "context.h"
 
-// Global context definition
-extern Context g_ctx;
-
+// Initialize SDL and create a renderer.
 bool init_sdl(SDL_Window** window, SDL_Renderer** renderer);
-void main_loop(SDL_Renderer* renderer);
+// Main loop renders using the provided texture.
+void main_loop(SDL_Renderer* renderer, SDL_Texture* texture);

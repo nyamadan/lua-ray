@@ -6,26 +6,29 @@ int main(int argc, char* argv[]) {
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
 
+    SDL_Texture* texture = nullptr;
     if (!init_sdl(&window, &renderer)) {
         return 1;
     }
-
-    // Lock texture for writing
-    SDL_LockTexture(g_ctx.texture, NULL, &g_ctx.pixels, &g_ctx.pitch);
-
-    // Init Lua and run script
+    // Init Lua and run script (capture returned value)
     sol::state lua;
     bind_lua(lua);
-    run_script(lua, argc, argv);
-    
-    // Unlock texture
-    SDL_UnlockTexture(g_ctx.texture);
+    // Expose the SDL_Renderer* to Lua as lightuserdata so scripts can create textures
+    lua["renderer"] = static_cast<void*>(renderer);
+    sol::object ret = run_script(lua, argc, argv);
 
-    // Enter main loop
-    main_loop(renderer);
+    // If the script returned a lightuserdata, use it as texture (no Lua global)
+    if (ret.get_type() == sol::type::lightuserdata) {
+        texture = static_cast<SDL_Texture*>(ret.as<void*>());
+    } else {
+        texture = nullptr;
+    }
 
-    // Cleanup
-    SDL_DestroyTexture(g_ctx.texture);
+    // Enter main loop (texture may be null)
+    main_loop(renderer, texture);
+
+    // Cleanup (destroy texture if created)
+    if (texture) SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();

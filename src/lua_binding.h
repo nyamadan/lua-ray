@@ -1,9 +1,7 @@
 #pragma once
-#include "context.h"
 #include <sol/sol.hpp>
 
-// Global context reference needed for draw_pixel
-extern Context g_ctx;
-
+// Bind Lua functions. No Context concept — texture is provided to Lua as lightuserdata.
 void bind_lua(sol::state& lua);
-void run_script(sol::state& lua, int argc, char* argv[]);
+// Run script and return the script's return value (if any) as a sol::object.
+sol::object run_script(sol::state& lua, int argc, char* argv[]);

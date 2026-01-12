@@ -8,6 +8,9 @@ function render()
     local device = EmbreeDevice.new()
     local scene = device:create_scene()
 
+    -- Create the texture from the renderer provided by the host (lightuserdata)
+    local texture = api_create_texture(renderer, width, height)
+
     -- Create scene: A single triangle
     -- Vertices: (-0.5, -0.5, 0), (0.5, -0.5, 0), (0.0, 0.5, 0)
     -- Camera is at (0,0,1) looking at -z. So z=0 is in front of camera.
@@ -28,8 +31,11 @@ function render()
     local lightLen = math.sqrt(lightDirX*lightDirX + lightDirY*lightDirY + lightDirZ*lightDirZ)
     lightDirX, lightDirY, lightDirZ = lightDirX/lightLen, lightDirY/lightLen, lightDirZ/lightLen
 
-    for y = 0, height - 1 do
-        for x = 0, width - 1 do
+    -- Lock once, write many pixels, then unlock
+    local pixels, pitch = api_lock_texture(texture)
+    if pixels ~= nil then
+        for y = 0, height - 1 do
+            for x = 0, width - 1 do
             -- Normalize pixel coordinates [-1, 1]
             local u = (2.0 * x - width) / width
             local v = (2.0 * y - height) / height
@@ -74,15 +80,19 @@ function render()
                 -- Let's make it Red-ish if we want, or just white.
                 -- api_draw_pixel(x, y, shade, shade, shade) -- grayscale
                 
-                -- Let's do a simple color:
-                api_draw_pixel(x, y, math.floor(shade * 1.0), math.floor(shade * 0.8), math.floor(shade * 0.8))
+                -- Let's do a simple color using locked write API:
+                api_draw_pixel_locked(pixels, pitch, x, y, math.floor(shade * 1.0), math.floor(shade * 0.8), math.floor(shade * 0.8))
             else
-                api_draw_pixel(x, y, 50, 50, 60) -- Dark blue-ish background
+                api_draw_pixel_locked(pixels, pitch, x, y, 50, 50, 60) -- Dark blue-ish background
             end
         end
     end
+        api_unlock_texture(texture)
+    end
 
     print("Lua render finished.")
+    return texture
 end
 
-render()
+-- Call render and return the texture to C++
+return render()

@@ -1,23 +1,68 @@
+
 #include "lua_binding.h"
 #include "embree_wrapper.h"
 #include <iostream>
-
-// Lua Binding: Draw Pixel
-// draw_pixel(x, y, r, g, b)
-void draw_pixel(int x, int y, int r, int g, int b) {
-    if (x >= 0 && x < g_ctx.width && y >= 0 && y < g_ctx.height) {
-        uint32_t* pixel = (uint32_t*)((uint8_t*)g_ctx.pixels + y * g_ctx.pitch + x * sizeof(uint32_t));
-        // SDL_PIXELFORMAT_RGBA32 packs as R, G, B, A order.
-        // On Little Endian (x86), this acts as 0xAABBGGRR in integer representation.
-        *pixel = (r) | (g << 8) | (b << 16) | (255 << 24);
-    }
-}
+#include <SDL3/SDL.h>
+#include <utility>
 
 void bind_lua(sol::state& lua) {
     lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::string, sol::lib::table);
 
-    // Bind draw_pixel
-    lua.set_function("api_draw_pixel", draw_pixel);
+    // Provide a texture-based API. Preferred usage is to lock once, write many pixels, then unlock.
+    // Legacy convenience: api_draw_pixel_texture still exists but callers should prefer lock/unlock + api_draw_pixel_locked.
+    lua.set_function("api_draw_pixel_texture", [](void* texture, int x, int y, int r, int g, int b) {
+        if (!texture) return;
+        SDL_Texture* tex = static_cast<SDL_Texture*>(texture);
+        void* pixels = nullptr;
+        int pitch = 0;
+        if (SDL_LockTexture(tex, NULL, &pixels, &pitch) == false) {
+            return;
+        }
+        if (pixels) {
+            uint32_t* pixel = (uint32_t*)((uint8_t*)pixels + y * pitch + x * sizeof(uint32_t));
+            *pixel = (r) | (g << 8) | (b << 16) | (255 << 24);
+        }
+        SDL_UnlockTexture(tex);
+    });
+
+    // Lock/unlock API: lock returns (pixels, pitch) as two return values (pair).
+    lua.set_function("api_lock_texture", [](void* texture) -> std::pair<void*, int> {
+        if (!texture) return std::pair<void*, int>{nullptr, 0};
+        SDL_Texture* tex = static_cast<SDL_Texture*>(texture);
+        void* pixels = nullptr;
+        int pitch = 0;
+        if (SDL_LockTexture(tex, NULL, &pixels, &pitch) == false) {
+            return std::pair<void*, int>{nullptr, 0};
+        }
+        return std::pair<void*, int>{pixels, pitch};
+    });
+
+    lua.set_function("api_unlock_texture", [](void* texture) {
+        if (!texture) return;
+        SDL_Texture* tex = static_cast<SDL_Texture*>(texture);
+        SDL_UnlockTexture(tex);
+    });
+
+    // Draw into a locked pixel buffer: api_draw_pixel_locked(pixels, pitch, x, y, r, g, b)
+    lua.set_function("api_draw_pixel_locked", [](void* pixels, int pitch, int x, int y, int r, int g, int b) {
+        if (!pixels) return;
+        uint32_t* pixel = (uint32_t*)((uint8_t*)pixels + y * pitch + x * sizeof(uint32_t));
+        *pixel = (r) | (g << 8) | (b << 16) | (255 << 24);
+    });
+
+    // Create/destroy texture helpers. Lua creates texture from renderer lightuserdata.
+    lua.set_function("api_create_texture", [](void* renderer, int w, int h) -> void* {
+        if (!renderer) return nullptr;
+        SDL_Renderer* rend = static_cast<SDL_Renderer*>(renderer);
+        SDL_Texture* tex = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, w, h);
+        return static_cast<void*>(tex);
+    });
+
+    lua.set_function("api_destroy_texture", [](void* texture) {
+        if (!texture) return;
+        SDL_Texture* tex = static_cast<SDL_Texture*>(texture);
+        SDL_DestroyTexture(tex);
+    });
 
     // Bind EmbreeDevice
     lua.new_usertype<EmbreeDevice>("EmbreeDevice",
@@ -26,14 +71,7 @@ void bind_lua(sol::state& lua) {
     );
 
     // Bind EmbreeScene
-    // Note: We return unique_ptr for create_scene, so Lua takes ownership.
     lua.new_usertype<EmbreeScene>("EmbreeScene",
-        // No constructor exposed directly if we want to enforce creation via device, 
-        // but sol::constructors is usually good. 
-        // For now, let's allow creation via device:create_scene only, so no constructors here?
-        // Actually, if we want to allow `EmbreeScene.new` we need one.
-        // But the plan was `device:create_scene()`.
-        
         "add_sphere", &EmbreeScene::add_sphere,
         "add_triangle", &EmbreeScene::add_triangle,
         "commit", &EmbreeScene::commit,
@@ -41,7 +79,7 @@ void bind_lua(sol::state& lua) {
     );
 }
 
-void run_script(sol::state& lua, int argc, char* argv[]) {
+sol::object run_script(sol::state& lua, int argc, char* argv[]) {
     const char* scriptFile = "main.lua";
     if (argc > 1) {
         scriptFile = argv[1];
@@ -52,7 +90,9 @@ void run_script(sol::state& lua, int argc, char* argv[]) {
     if (!result.valid()) {
         sol::error err = result;
         std::cerr << "Lua Error: " << err.what() << std::endl;
+        return sol::object(sol::nil);
     } else {
         std::cout << "Lua script executed successfully." << std::endl;
+        return sol::object(result);
     }
 }
