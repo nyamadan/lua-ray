@@ -7,20 +7,20 @@ on:
     branches: [ main ]
 
 jobs:
-  emscripten:
-    name: Build (Emscripten)
-    runs-on: ubuntu-slim
+  ci:
+    name: Build and Test
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Restore ccache (Emscripten)
+      - name: Restore ccache
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.ccache
-          key: cache-emscripten-ccache-${{ runner.os }}-${{ github.ref_name }}
+          key: cache-ccache-${{ runner.os }}-${{ github.ref_name }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -35,40 +35,6 @@ jobs:
 
       - name: Install Node dependencies
         run: pnpm install
-
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y ccache cmake ninja-build
-
-      - name: Setup Emscripten
-        run: |
-          if [ ! -d "${{ github.workspace }}/.emsdk" ]; then
-            git clone https://github.com/emscripten-core/emsdk.git ./.emsdk
-          fi
-          cd ./.emsdk
-          ./emsdk install 4.0.22
-          ./emsdk activate 4.0.22
-          source ./emsdk_env.sh
-
-      - name: Configure (Emscripten)
-        run: pnpm run configure:emscripten
-
-      - name: Build (Emscripten)
-        run: pnpm run build:emscripten -j1
-
-  gcc-debug:
-    name: Build and Test (GCC Debug)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Restore ccache (GCC)
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.ccache
-          key: cache-gcc-debug-ccache-${{ runner.os }}-${{ github.ref_name }}
 
       - name: Install System Dependencies
         run: |
@@ -104,19 +70,21 @@ jobs:
             liburing-dev \
             ccache
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          run_install: false
+      - name: Setup Emscripten
+        run: |
+          if [ ! -d "${{ github.workspace }}/.emsdk" ]; then
+            git clone https://github.com/emscripten-core/emsdk.git ./.emsdk
+          fi
+          cd ./.emsdk
+          ./emsdk install 4.0.22
+          ./emsdk activate 4.0.22
+          source ./emsdk_env.sh
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
-          cache: 'pnpm'
+      - name: Configure (Emscripten)
+        run: pnpm run configure:emscripten
 
-      - name: Install Node dependencies
-        run: pnpm install
+      - name: Build (Emscripten)
+        run: pnpm run build:emscripten -j1
 
       - name: Configure (GCC)
         run: pnpm run configure
