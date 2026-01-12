@@ -69,17 +69,20 @@ if(NOT lbuffer_src_POPULATED)
         RESULT_VARIABLE PATCH_RESULT
         ERROR_QUIET
     )
+    # Apply patch to fix LUA_QS undefined error
+    execute_process(
+        COMMAND git apply --ignore-whitespace --reject ${CMAKE_SOURCE_DIR}/patches/lbuffer-fix-lua-qs.patch
+        WORKING_DIRECTORY ${lbuffer_src_SOURCE_DIR}
+        RESULT_VARIABLE PATCH_RESULT2
+        ERROR_QUIET
+    )
 endif()
 
 add_library(lbuffer STATIC
     ${lbuffer_src_SOURCE_DIR}/lbuffer.c
     ${lbuffer_src_SOURCE_DIR}/lbufflib.c
 )
-target_compile_options(lbuffer PRIVATE -w -fpermissive) # Suppress warnings (extern-init), permissive for pointer types
-if(EMSCRIPTEN)
-    target_compile_options(lbuffer PRIVATE -Wno-error=incompatible-pointer-types)
-endif()
-target_compile_definitions(lbuffer PRIVATE "LUA_QS=\"'%s'\"")
+target_compile_options(lbuffer PRIVATE -w -fpermissive -Wno-error=incompatible-pointer-types)
 target_include_directories(lbuffer PUBLIC ${lbuffer_src_SOURCE_DIR})
 # lua headers are needed for lbuffer
 target_link_libraries(lbuffer PRIVATE lua)
