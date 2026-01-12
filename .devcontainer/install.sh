@@ -18,6 +18,7 @@ DEPS=(
     lldb
     pkg-config
     cmake
+    ccache
     gnome-desktop-testing
     libasound2-dev
     libpulse-dev

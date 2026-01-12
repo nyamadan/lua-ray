@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+
+    steps:
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gnome-desktop-testing \
+            libasound2-dev \
+            libpulse-dev \
+            libaudio-dev \
+            libfribidi-dev \
+            libjack-dev \
+            libsndio-dev \
+            libx11-dev \
+            libxext-dev \
+            libxrandr-dev \
+            libxcursor-dev \
+            libxfixes-dev \
+            libxi-dev \
+            libxss-dev \
+            libxtst-dev \
+            libxkbcommon-dev \
+            libdrm-dev \
+            libgbm-dev \
+            libgl1-mesa-dev \
+            libgles2-mesa-dev \
+            libegl1-mesa-dev \
+            libdbus-1-dev \
+            libibus-1.0-dev \
+            libudev-dev \
+            libthai-dev \
+            libpipewire-0.3-dev \
+            libwayland-dev \
+            libdecor-0-dev \
+            liburing-dev \
+            ccache
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ${{ runner.os }}-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'pnpm'
+
+      - name: Install Node dependencies
+        run: pnpm install
+
+      - name: Setup Emscripten
+        run: |
+          cd .emsdk
+          ./emsdk install latest
+          ./emsdk activate latest
+
+      - name: Configure (GCC)
+        run: pnpm run configure
+
+      - name: Build (GCC)
+        run: pnpm run build
+
+      - name: Test
+        run: pnpm run test
+
+      - name: Configure (Emscripten)
+        run: pnpm run configure:emscripten
+
+      - name: Build (Emscripten)
+        run: pnpm run build:emscripten
