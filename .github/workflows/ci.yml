@@ -7,12 +7,84 @@ on:
     branches: [ main ]
 
 jobs:
-  build-and-test:
+  emscripten:
+    name: Build and Test (Emscripten)
     runs-on: ubuntu-latest
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
-
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Restore ccache (Emscripten)
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: cache-emscripten-ccache-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', '**/*.c', '**/*.cpp', '**/*.h') }}
+          restore-keys: |
+            cache-emscripten-ccache-${{ runner.os }}-
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'pnpm'
+
+      - name: Install Node dependencies
+        run: pnpm install
+
+      - name: Install ccache
+        run: sudo apt-get update && sudo apt-get install -y ccache
+
+      - name: Setup Emscripten
+        run: |
+          if [ ! -d "${{ github.workspace }}/.emsdk" ]; then
+            git clone https://github.com/emscripten-core/emsdk.git ./.emsdk
+          fi
+          cd ./.emsdk
+          ./emsdk install latest
+          ./emsdk activate latest
+          source ./emsdk_env.sh
+
+      - name: Configure (Emscripten)
+        run: pnpm run configure:emscripten
+
+      - name: Build (Emscripten)
+        run: pnpm run build:emscripten
+
+      - name: Save ccache (Emscripten)
+        if: always()
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: cache-emscripten-ccache-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', '**/*.c', '**/*.cpp', '**/*.h') }}
+
+  gcc-debug:
+    name: Build and Test (GCC Debug)
+    runs-on: ubuntu-latest
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Restore ccache (GCC)
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: cache-gcc-debug-ccache-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', '**/*.c', '**/*.cpp', '**/*.h') }}
+          restore-keys: |
+            cache-gcc-debug-ccache-${{ runner.os }}-
+
       - name: Install System Dependencies
         run: |
           sudo apt-get update
@@ -48,19 +120,6 @@ jobs:
             liburing-dev \
             ccache
 
-      - name: Cache ccache
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.ccache
-          key: ${{ runner.os }}-ccache-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-ccache-
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -75,12 +134,6 @@ jobs:
       - name: Install Node dependencies
         run: pnpm install
 
-      - name: Setup Emscripten
-        run: |
-          cd .emsdk
-          ./emsdk install latest
-          ./emsdk activate latest
-
       - name: Configure (GCC)
         run: pnpm run configure
 
@@ -90,8 +143,9 @@ jobs:
       - name: Test
         run: pnpm run test
 
-      - name: Configure (Emscripten)
-        run: pnpm run configure:emscripten
-
-      - name: Build (Emscripten)
-        run: pnpm run build:emscripten
+      - name: Save ccache (GCC)
+        if: always()
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: cache-gcc-debug-ccache-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', '**/*.c', '**/*.cpp', '**/*.h') }}
