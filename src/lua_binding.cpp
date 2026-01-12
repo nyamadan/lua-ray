@@ -35,6 +35,7 @@ void bind_lua(sol::state& lua) {
         // But the plan was `device:create_scene()`.
         
         "add_sphere", &EmbreeScene::add_sphere,
+        "add_triangle", &EmbreeScene::add_triangle,
         "commit", &EmbreeScene::commit,
         "intersect", &EmbreeScene::intersect
     );

@@ -74,3 +74,30 @@ TEST_F(LuaBindingTest, EmbreeSceneOperations) {
     )");
     ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
 }
+
+TEST_F(LuaBindingTest, AddTriangle) {
+    auto result = lua.safe_script(R"(
+        local device = EmbreeDevice.new()
+        local scene = device:create_scene()
+        
+        -- Add triangle should not crash
+        scene:add_triangle(0, 0, 0, 1, 0, 0, 0, 1, 0)
+        
+        scene:commit()
+        
+        -- Intersect triangle
+        -- Triangle is (0,0,0)-(1,0,0)-(0,1,0) (Z=0 plane)
+        -- Ray from (0.2, 0.2, 1) direction (0, 0, -1) should hit
+        local hit, t, nx, ny, nz = scene:intersect(0.2, 0.2, 1, 0, 0, -1)
+        assert(hit == true)
+        assert(math.abs(t - 1.0) < 0.001)
+        -- Normal should be (0, 0, 1) or (0, 0, -1) depending on winding
+        -- Counter-clockwise: (1,0,0)-(0,0,0) = (1,0,0), (0,1,0)-(0,0,0)=(0,1,0). Cross=(0,0,1).
+        -- Wait, (0,0,0), (1,0,0), (0,1,0).
+        -- v0=(0,0,0), v1=(1,0,0), v2=(0,1,0).
+        -- e1 = v1-v0 = (1,0,0). e2 = v2-v0 = (0,1,0).
+        -- cross(e1, e2) = (0, 0, 1).
+        assert(math.abs(nz) > 0.9)
+    )");
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+}

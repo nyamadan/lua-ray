@@ -67,6 +67,26 @@ void EmbreeScene::add_sphere(float cx, float cy, float cz, float r) {
     rtcReleaseGeometry(geom);
 }
 
+void EmbreeScene::add_triangle(float x1, float y1, float z1, float x2, float y2, float z2, float x3, float y3, float z3) {
+    if (!device || !scene) return;
+
+    RTCGeometry geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
+
+    float* vertices = (float*)rtcSetNewGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, 3 * sizeof(float), 3);
+    vertices[0] = x1; vertices[1] = y1; vertices[2] = z1;
+    vertices[3] = x2; vertices[4] = y2; vertices[5] = z2;
+    vertices[6] = x3; vertices[7] = y3; vertices[8] = z3;
+
+    unsigned int* indices = (unsigned int*)rtcSetNewGeometryBuffer(geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, 3 * sizeof(unsigned int), 1);
+    indices[0] = 0;
+    indices[1] = 1;
+    indices[2] = 2;
+
+    rtcCommitGeometry(geom);
+    rtcAttachGeometry(scene, geom);
+    rtcReleaseGeometry(geom);
+}
+
 void EmbreeScene::commit() {
     if (scene) {
         rtcCommitScene(scene);
