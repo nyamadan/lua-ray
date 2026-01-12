@@ -74,6 +74,7 @@ sudo apt-get -y install "${DEPS[@]}"
     cd "$ROOT_DIR"
     sudo chown -R "$(id -u)":"$(id -g)" .pnpm-store 2>/dev/null || true
     sudo chown -R "$(id -u)":"$(id -g)" node_modules 2>/dev/null || true
+    sudo chown -R "$(id -u)":"$(id -g)" .ccache 2>/dev/null || true
     pnpm install
 )
 

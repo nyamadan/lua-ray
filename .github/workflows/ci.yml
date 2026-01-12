@@ -45,8 +45,8 @@ jobs:
             git clone https://github.com/emscripten-core/emsdk.git ./.emsdk
           fi
           cd ./.emsdk
-          ./emsdk install latest
-          ./emsdk activate latest
+          ./emsdk install 4.0.22
+          ./emsdk activate 4.0.22
           source ./emsdk_env.sh
 
       - name: Configure (Emscripten)
