@@ -84,7 +84,7 @@ jobs:
         run: pnpm run configure:emscripten
 
       - name: Build (Emscripten)
-        run: pnpm run build:emscripten -j1
+        run: pnpm run build:emscripten -j2
 
       - name: Configure (GCC)
         run: pnpm run configure
