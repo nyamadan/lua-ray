@@ -8,8 +8,8 @@ on:
 
 jobs:
   emscripten:
-    name: Build and Test (Emscripten)
-    runs-on: ubuntu-latest
+    name: Build (Emscripten)
+    runs-on: ubuntu-slim
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
     steps:
@@ -22,7 +22,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.ccache
-          key: cache-emscripten-ccache-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', '**/*.c', '**/*.cpp', '**/*.h') }}
+          key: cache-emscripten-ccache-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt') }}
           restore-keys: |
             cache-emscripten-ccache-${{ runner.os }}-
 
@@ -40,8 +40,8 @@ jobs:
       - name: Install Node dependencies
         run: pnpm install
 
-      - name: Install ccache
-        run: sudo apt-get update && sudo apt-get install -y ccache
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y ccache cmake ninja-build
 
       - name: Setup Emscripten
         run: |
@@ -57,18 +57,11 @@ jobs:
         run: pnpm run configure:emscripten
 
       - name: Build (Emscripten)
-        run: pnpm run build:emscripten
-
-      - name: Save ccache (Emscripten)
-        if: always()
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.ccache
-          key: cache-emscripten-ccache-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', '**/*.c', '**/*.cpp', '**/*.h') }}
+        run: pnpm run build:emscripten -j2
 
   gcc-debug:
     name: Build and Test (GCC Debug)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
     steps:
@@ -81,15 +74,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.ccache
-          key: cache-gcc-debug-ccache-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', '**/*.c', '**/*.cpp', '**/*.h') }}
+          key: cache-gcc-debug-ccache-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt') }}
           restore-keys: |
             cache-gcc-debug-ccache-${{ runner.os }}-
 
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            gnome-desktop-testing \
+          sudo apt-get install --no-install-recommends -y \
             libasound2-dev \
             libpulse-dev \
             libaudio-dev \
@@ -118,7 +110,9 @@ jobs:
             libwayland-dev \
             libdecor-0-dev \
             liburing-dev \
-            ccache
+            ccache \
+            cmake \
+            ninja-build
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -138,14 +132,7 @@ jobs:
         run: pnpm run configure
 
       - name: Build (GCC)
-        run: pnpm run build
+        run: pnpm run build -j2
 
       - name: Test
         run: pnpm run test
-
-      - name: Save ccache (GCC)
-        if: always()
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.ccache
-          key: cache-gcc-debug-ccache-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', '**/*.c', '**/*.cpp', '**/*.h') }}
