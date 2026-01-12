@@ -69,6 +69,15 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_TOOLCHAIN_FILE": ".emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake"
+      },
+      "environment": {
+        "CCACHE_NODEBUG": "true",
+        "CCACHE_DIRECT": "true",
+        "CCACHE_MAXSIZE": "500M",
+        "CCACHE_COMPRESS": "true",
+        "CCACHE_COMPRESSLEVEL": "1",
+        "CCACHE_NOSTATS": "true",
+        "CCACHE_DIR": "${sourceDir}/.ccache/emscripten-release"
       }
     },
     {
@@ -80,6 +89,15 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_TOOLCHAIN_FILE": ".emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake"
+      },
+      "environment": {
+        "CCACHE_NODEBUG": "true",
+        "CCACHE_DIRECT": "true",
+        "CCACHE_MAXSIZE": "500M",
+        "CCACHE_COMPRESS": "true",
+        "CCACHE_COMPRESSLEVEL": "1",
+        "CCACHE_NOSTATS": "true",
+        "CCACHE_DIR": "${sourceDir}/.ccache/emscripten-debug"
       }
     },
     {
@@ -92,6 +110,15 @@
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_C_COMPILER": "gcc",
         "CMAKE_CXX_COMPILER": "g++"
+      },
+      "environment": {
+        "CCACHE_NODEBUG": "true",
+        "CCACHE_DIRECT": "true",
+        "CCACHE_MAXSIZE": "500M",
+        "CCACHE_COMPRESS": "true",
+        "CCACHE_COMPRESSLEVEL": "1",
+        "CCACHE_NOSTATS": "true",
+        "CCACHE_DIR": "${sourceDir}/.ccache/gcc-release"
       }
     },
     {
@@ -104,6 +131,15 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_C_COMPILER": "gcc",
         "CMAKE_CXX_COMPILER": "g++"
+      },
+      "environment": {
+        "CCACHE_NODEBUG": "true",
+        "CCACHE_DIRECT": "true",
+        "CCACHE_MAXSIZE": "500M",
+        "CCACHE_COMPRESS": "true",
+        "CCACHE_COMPRESSLEVEL": "1",
+        "CCACHE_NOSTATS": "true",
+        "CCACHE_DIR": "${sourceDir}/.ccache/gcc-debug"
       }
     }
   ]

@@ -1,3 +1,6 @@
+# CCache
+.ccache
+
 # Ignore local installation script
 .devcontainer/install.local.sh
 

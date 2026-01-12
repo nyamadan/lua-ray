@@ -10,8 +10,6 @@ jobs:
   emscripten:
     name: Build (Emscripten)
     runs-on: ubuntu-slim
-    env:
-      CCACHE_DIR: ${{ github.workspace }}/.ccache
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,9 +20,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.ccache
-          key: cache-emscripten-ccache-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt') }}
-          restore-keys: |
-            cache-emscripten-ccache-${{ runner.os }}-
+          key: cache-emscripten-ccache-${{ runner.os }}-${{ github.ref_name }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -57,13 +53,11 @@ jobs:
         run: pnpm run configure:emscripten
 
       - name: Build (Emscripten)
-        run: pnpm run build:emscripten -j2
+        run: pnpm run build:emscripten -j1
 
   gcc-debug:
     name: Build and Test (GCC Debug)
-    runs-on: ubuntu-slim
-    env:
-      CCACHE_DIR: ${{ github.workspace }}/.ccache
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -74,9 +68,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.ccache
-          key: cache-gcc-debug-ccache-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt') }}
-          restore-keys: |
-            cache-gcc-debug-ccache-${{ runner.os }}-
+          key: cache-gcc-debug-ccache-${{ runner.os }}-${{ github.ref_name }}
 
       - name: Install System Dependencies
         run: |
@@ -110,9 +102,7 @@ jobs:
             libwayland-dev \
             libdecor-0-dev \
             liburing-dev \
-            ccache \
-            cmake \
-            ninja-build
+            ccache
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
