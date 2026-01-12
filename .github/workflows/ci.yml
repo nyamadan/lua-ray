@@ -9,23 +9,14 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    container: ubuntu:latest
     env:
-      CCACHE_DIR: /root/.cache/ccache
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
 
     steps:
       - name: Install System Dependencies
         run: |
-          apt-get update
-          apt-get install -y \
-            build-essential \
-            git \
-            make \
-            ninja-build \
-            python3 \
-            python3-pip \
-            pkg-config \
-            cmake \
+          sudo apt-get update
+          sudo apt-get install -y \
             gnome-desktop-testing \
             libasound2-dev \
             libpulse-dev \
@@ -55,16 +46,12 @@ jobs:
             libwayland-dev \
             libdecor-0-dev \
             liburing-dev \
-            curl \
-            wget \
-            unzip \
-            ca-certificates \
             ccache
 
       - name: Cache ccache
         uses: actions/cache@v4
         with:
-          path: /root/.cache/ccache
+          path: ${{ github.workspace }}/.ccache
           key: ${{ runner.os }}-ccache-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-ccache-
