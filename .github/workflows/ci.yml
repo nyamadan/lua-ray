@@ -40,6 +40,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y \
+            gnome-desktop-testing \
             libasound2-dev \
             libpulse-dev \
             libaudio-dev \
@@ -85,6 +86,12 @@ jobs:
 
       - name: Build (Emscripten)
         run: pnpm run build:emscripten -j2
+
+      - name: Configure (Win32)
+        run: pnpm run configure:win32
+
+      - name: Build (Win32)
+        run: pnpm run build:win32 -j2
 
       - name: Configure (GCC)
         run: pnpm run configure

@@ -31,11 +31,11 @@
   ],
   "buildPresets": [
     {
-      "name": "emscripten-debug",
-      "displayName": "Emscripten Debug Build",
-      "configurePreset": "emscripten-debug",
+      "name": "win32-release",
+      "displayName": "win32-Release Build",
+      "configurePreset": "win32-release",
       "jobs": 4,
-      "configuration": "Debug"
+      "configuration": "Release"
     },
     {
       "name": "emscripten-release",
@@ -81,14 +81,16 @@
       }
     },
     {
-      "name": "emscripten-debug",
-      "displayName": "Emscripten Debug",
-      "description": "Build using Emscripten in Debug mode",
+      "name": "win32-release",
+      "displayName": "win32 Release",
+      "description": "Build using win32 in Release mode",
       "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/emscripten-debug",
+      "binaryDir": "${sourceDir}/build/win32-release",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_TOOLCHAIN_FILE": ".emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake"
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "x86_64-w64-mingw32ucrt-gcc",
+        "CMAKE_CXX_COMPILER": "x86_64-w64-mingw32ucrt-g++",
+        "CMAKE_SYSTEM_NAME": "Windows"
       },
       "environment": {
         "CCACHE_NODEBUG": "true",
@@ -97,7 +99,7 @@
         "CCACHE_COMPRESS": "true",
         "CCACHE_COMPRESSLEVEL": "1",
         "CCACHE_NOSTATS": "true",
-        "CCACHE_DIR": "${sourceDir}/.ccache/emscripten-debug"
+        "CCACHE_DIR": "${sourceDir}/.ccache/win32-release"
       }
     },
     {

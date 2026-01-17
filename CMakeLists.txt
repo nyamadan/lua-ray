@@ -4,10 +4,20 @@ project(lua-ray VERSION 0.1.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# ---------------------------------------------------------
+# Enable ccache if available
+# ---------------------------------------------------------
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
     set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
     set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+endif()
+
+# ---------------------------------------------------------
+# MinGW static runtime linking
+# ---------------------------------------------------------
+if (MINGW)
+    add_link_options(-static -static-libgcc -static-libstdc++)
 endif()
 
 include(FetchContent)
@@ -115,13 +125,15 @@ set(EMBREE_RAY_MASK ON CACHE BOOL "" FORCE)
 set(EMBREE_TASKING_SYSTEM "INTERNAL" CACHE STRING "" FORCE)
 set(EMBREE_STATIC_LIB ON CACHE BOOL "" FORCE)
 set(EMBREE_ISPC_SUPPORT OFF CACHE BOOL "" FORCE)
-set(EMBREE_ISA_AVX OFF CACHE BOOL "" FORCE)
-set(EMBREE_ISA_AVX2 OFF CACHE BOOL "" FORCE)
-set(EMBREE_ISA_AVX512 OFF CACHE BOOL "" FORCE)
-set(EMBREE_ISA_SSE42 OFF CACHE BOOL "" FORCE)
-set(FLAGS_SSE2 "-msse -msse2")
 
-set(EMBREE_ISA_SSE2 ON CACHE BOOL "" FORCE) # Wasm SIMD用
+if(EMSCRIPTEN)
+    set(EMBREE_ISA_AVX OFF CACHE BOOL "" FORCE)
+    set(EMBREE_ISA_AVX2 OFF CACHE BOOL "" FORCE)
+    set(EMBREE_ISA_AVX512 OFF CACHE BOOL "" FORCE)
+    set(EMBREE_ISA_SSE42 OFF CACHE BOOL "" FORCE)
+    set(EMBREE_ISA_SSE2 ON CACHE BOOL "" FORCE)
+    set(FLAGS_SSE2 "-msse -msse2")
+endif()
 
 FetchContent_Declare(
     embree

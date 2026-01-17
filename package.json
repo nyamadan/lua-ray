@@ -9,9 +9,11 @@
   "packageManager": "pnpm@10.27.0",
   "scripts": {
     "configure": "cmake --preset gcc-debug",
-    "configure:emscripten": "cmake --preset emscripten-debug",
+    "configure:win32": "cmake --preset win32-release",
+    "configure:emscripten": "cmake --preset emscripten-release",
     "build": "cmake --build --preset gcc-debug --target all",
-    "build:emscripten": "cmake --build --preset emscripten-debug --target all",
+    "build:win32": "cmake --build --preset win32-release --target all",
+    "build:emscripten": "cmake --build --preset emscripten-release --target all",
     "test": "ctest --preset gcc-debug --output-on-failure"
   },
   "devDependencies": {
