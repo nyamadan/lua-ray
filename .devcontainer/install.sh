@@ -48,8 +48,9 @@ DEPS=(
     libwayland-dev
     libdecor-0-dev
     liburing-dev
-    gcc-mingw-w64-ucrt64
-    g++-mingw-w64-ucrt64
+    mingw-w64-x86-64-dev
+    gcc-mingw-w64-x86-64
+    g++-mingw-w64-x86-64
 )
 
 # Install dependencies

@@ -82,14 +82,14 @@
     },
     {
       "name": "win32-release",
-      "displayName": "win32 Release",
+      "displayName": "Win32 Release",
       "description": "Build using win32 in Release mode",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/win32-release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_C_COMPILER": "x86_64-w64-mingw32ucrt-gcc",
-        "CMAKE_CXX_COMPILER": "x86_64-w64-mingw32ucrt-g++",
+        "CMAKE_C_COMPILER": "x86_64-w64-mingw32-gcc",
+        "CMAKE_CXX_COMPILER": "x86_64-w64-mingw32-g++",
         "CMAKE_SYSTEM_NAME": "Windows"
       },
       "environment": {
