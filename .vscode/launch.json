@@ -17,8 +17,8 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Launch: unit-tests",
-            "program": "build/gcc-debug/unit-tests",
+            "name": "Launch: lua-ray-tests",
+            "program": "build/gcc-debug/lua-ray-tests",
             "args": [],
             "cwd": "${workspaceFolder}/build/gcc-debug"
         }

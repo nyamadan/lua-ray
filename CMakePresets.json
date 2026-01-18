@@ -12,8 +12,8 @@
       "configurePreset": "gcc-debug",
       "configuration": "Debug",
       "filter": {
-        "exclude": {
-          "name": "^prim_"
+        "include": {
+          "name": "^lua-ray-"
         }
       }
     },
@@ -23,8 +23,8 @@
       "configurePreset": "gcc-release",
       "configuration": "Release",
       "filter": {
-        "exclude": {
-          "name": "^prim_"
+        "include": {
+          "name": "^lua-ray-"
         }
       }
     }
@@ -32,7 +32,7 @@
   "buildPresets": [
     {
       "name": "win32-release",
-      "displayName": "win32-Release Build",
+      "displayName": "Win32-Release Build",
       "configurePreset": "win32-release",
       "jobs": 4,
       "configuration": "Release"
