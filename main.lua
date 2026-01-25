@@ -1,7 +1,7 @@
 -- SDL3 Ray Tracing in Lua
 
 -- Configuration (Called by C++ before SDL init)
-function get_config()
+function app.get_config()
     return {
         width = 800,
         height = 600,
@@ -17,8 +17,8 @@ local device = nil
 local scene = nil
 
 -- Initialize Application (Called by C++ after SDL init)
-function app_init()
-    local config = get_config()
+function app.init()
+    local config = app.get_config()
     sdl_width = config.width
     sdl_height = config.height
 
@@ -94,7 +94,7 @@ function render_scene()
 end
 
 -- GUI Callback (called every frame from C++ loop)
-function on_frame()
+function app.on_frame()
     if ImGui.Begin("Lua Ray Tracer Control") then
         ImGui.Text("Welcome to Lua Ray Tracer!")
         ImGui.Text(string.format("Resolution: %d x %d", sdl_width, sdl_height))

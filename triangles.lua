@@ -5,7 +5,7 @@ local height = 600
 local texture = nil
 
 -- Configuration
-function get_config()
+function app.get_config()
     return {
         width = 800,
         height = 600,
@@ -13,7 +13,7 @@ function get_config()
     }
 end
 
-function app_init()
+function app.init()
     print("Initializing Embree from Lua...")
     local device = EmbreeDevice.new()
     local scene = device:create_scene()
@@ -92,6 +92,6 @@ function app_init()
     return texture
 end
 
-function on_frame()
+function app.on_frame()
     -- Optional: Add GUI or animation updates here
 end
