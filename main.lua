@@ -40,11 +40,14 @@ function RayTracer:init()
         error("Error: Failed to create texture")
     end
 
-    -- 5. Configure App (Dependency Injection for C++)
+    -- 5. Create AppData
+    self.data = AppData.new(self.width, self.height)
+
+    -- 6. Configure App (Dependency Injection for C++)
     app.configure({
         width = self.width,
         height = self.height,
-        title = "Lua Ray Tracing (OO Refactor)",
+        title = "Lua Ray Tracing (AppData)",
         window = self.window,
         renderer = self.renderer,
         texture = self.texture
@@ -67,41 +70,41 @@ function RayTracer:render()
     local aspectRatio = self.width / self.height
     local lightDirX, lightDirY, lightDirZ = 0.707, 0.0, 0.707
     
-    -- Lock once, write many pixels, then unlock
-    local pixels, pitch = app.lock_texture(self.texture)
-    if pixels ~= nil then
-        for y = 0, self.height - 1 do
-            for x = 0, self.width - 1 do
-                -- Normalize pixel coordinates [-1, 1]
-                local u = (2.0 * x - self.width) / self.width
-                local v = (2.0 * y - self.height) / self.height
-                
-                u = u * aspectRatio
+    -- Render to AppData
+    for y = 0, self.height - 1 do
+        for x = 0, self.width - 1 do
+            -- Normalize pixel coordinates [-1, 1]
+            local u = (2.0 * x - self.width) / self.width
+            local v = (2.0 * y - self.height) / self.height
+            
+            u = u * aspectRatio
 
-                -- Ray setup (Camera at 0, 0, 1 looking at -z)
-                local ox, oy, oz = 0.0, 0.0, 1.0
-                local dx, dy, dz = u, v, -1.0
+            -- Ray setup (Camera at 0, 0, 1 looking at -z)
+            local ox, oy, oz = 0.0, 0.0, 1.0
+            local dx, dy, dz = u, v, -1.0
 
-                -- Normalize direction
-                local len = math.sqrt(dx*dx + dy*dy + dz*dz)
-                dx, dy, dz = dx/len, dy/len, dz/len
+            -- Normalize direction
+            local len = math.sqrt(dx*dx + dy*dy + dz*dz)
+            dx, dy, dz = dx/len, dy/len, dz/len
 
-                -- Intersect
-                local hit, t, nx, ny, nz = self.scene:intersect(ox, oy, oz, dx, dy, dz)
+            -- Intersect
+            local hit, t, nx, ny, nz = self.scene:intersect(ox, oy, oz, dx, dy, dz)
 
-                if hit then
-                    -- Diffuse shading
-                    local diffuse = nx * lightDirX + ny * lightDirY + nz * lightDirZ
-                    if diffuse < 0 then diffuse = 0 end
-                    local shade = math.floor(255 * diffuse)
-                    app.draw_pixel_locked(pixels, pitch, x, y, shade, shade, shade)
-                else
-                    app.draw_pixel_locked(pixels, pitch, x, y, 128, 128, 128) -- Gray background
-                end
+            if hit then
+                -- Diffuse shading
+                local diffuse = nx * lightDirX + ny * lightDirY + nz * lightDirZ
+                if diffuse < 0 then diffuse = 0 end
+                local shade = math.floor(255 * diffuse)
+                self.data:set_pixel(x, y, shade, shade, shade)
+            else
+                self.data:set_pixel(x, y, 128, 128, 128) -- Gray background
             end
         end
-        app.unlock_texture(self.texture)
     end
+    
+    -- Update Texture from AppData
+    app.update_texture(self.texture, self.data)
+    
     print("Lua render finished.")
 end
 

@@ -4,6 +4,8 @@
 #include "embree_wrapper.h"
 #include <iostream>
 #include "app.h"
+#include "app_data.h"
+
 
 void bind_lua(sol::state& lua, AppContext& ctx) {
     lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::string, sol::lib::table);
@@ -134,7 +136,22 @@ void bind_lua(sol::state& lua, AppContext& ctx) {
         "commit", &EmbreeScene::commit,
         "intersect", &EmbreeScene::intersect
     );
+    // Bind AppData
+    lua.new_usertype<AppData>("AppData",
+        sol::constructors<AppData(int, int)>(),
+        "set_pixel", &AppData::set_pixel,
+        "width", &AppData::get_width,
+        "height", &AppData::get_height
+    );
+
+    // Update texture from AppData
+    app.set_function("update_texture", [](void* texture, AppData& data) {
+        if (!texture) return;
+        SDL_Texture* tex = static_cast<SDL_Texture*>(texture);
+        SDL_UpdateTexture(tex, NULL, data.get_data(), data.get_width() * sizeof(uint32_t));
+    });
 }
+
 
 sol::object run_script(sol::state& lua, int argc, char* argv[]) {
     const char* scriptFile = "main.lua";
