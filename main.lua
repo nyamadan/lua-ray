@@ -1,26 +1,34 @@
 -- SDL3 Ray Tracing in Lua
 
 -- Configuration (Called by C++ before SDL init)
-function app.get_config()
-    return {
-        width = 800,
-        height = 600,
-        title = "Lua Ray Tracing (Controlled via Lua)"
-    }
-end
+-- Constants
+local WIDTH = 800
+local HEIGHT = 600
+
+-- Configuration (Called by C++ before SDL init)
+app.configure({
+    width = WIDTH,
+    height = HEIGHT,
+    title = "Lua Ray Tracing (Controlled via Lua)"
+})
 
 -- State variables
-local sdl_width = 800
-local sdl_height = 600
+local sdl_width = WIDTH
+local sdl_height = HEIGHT
 local texture = nil
 local device = nil
 local scene = nil
 
 -- Initialize Application (Called by C++ after SDL init)
 function app.init()
-    local config = app.get_config()
-    sdl_width = config.width
-    sdl_height = config.height
+    -- Config is already set via app.configure, but SDL init happens before this.
+    -- We can just assume global texture size matches what we asked for, or pass it in.
+    -- For now, we'll just use the globals which should match what we configured if C++ respected it.
+    -- Or we can query window size if we had that API.
+    -- Let's just use hardcoded for now matching configure, or rely on variables if we want dynamic.
+    -- Actually, let's just use the values we set.
+    sdl_width = WIDTH 
+    sdl_height = HEIGHT
 
     print("Initializing Embree from Lua...")
     device = EmbreeDevice.new()

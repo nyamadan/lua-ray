@@ -1,17 +1,15 @@
 -- SDL3 Ray Tracing in Lua - Triangles
 
-local width = 800
-local height = 600
+local WIDTH = 800
+local HEIGHT = 600
 local texture = nil
 
 -- Configuration
-function app.get_config()
-    return {
-        width = 800,
-        height = 600,
-        title = "Lua Ray Tracing - Triangles"
-    }
-end
+app.configure({
+    width = WIDTH,
+    height = HEIGHT,
+    title = "Lua Ray Tracing - Triangles"
+})
 
 function app.init()
     print("Initializing Embree from Lua...")
@@ -25,7 +23,7 @@ function app.init()
         return nil
     end
 
-    texture = app.create_texture(renderer, width, height)
+    texture = app.create_texture(renderer, WIDTH, HEIGHT)
 
     -- Create scene: A single triangle
     -- Vertices: (-0.5, -0.5, 0), (0.5, -0.5, 0), (0.0, 0.5, 0)
@@ -40,7 +38,7 @@ function app.init()
 
     print("Rendering scene...")
 
-    local aspectRatio = width / height
+    local aspectRatio = WIDTH / HEIGHT
     local lightDirX, lightDirY, lightDirZ = 0.707, 0.0, 0.707
     -- Re-normalize light direction
     local lightLen = math.sqrt(lightDirX*lightDirX + lightDirY*lightDirY + lightDirZ*lightDirZ)
@@ -49,11 +47,11 @@ function app.init()
     -- Lock once, write many pixels, then unlock
     local pixels, pitch = app.lock_texture(texture)
     if pixels ~= nil then
-        for y = 0, height - 1 do
-            for x = 0, width - 1 do
+        for y = 0, HEIGHT - 1 do
+            for x = 0, WIDTH - 1 do
                 -- Normalize pixel coordinates [-1, 1]
-                local u = (2.0 * x - width) / width
-                local v = (2.0 * y - height) / height
+                local u = (2.0 * x - WIDTH) / WIDTH
+                local v = (2.0 * y - HEIGHT) / HEIGHT
                 
                 u = u * aspectRatio
                 

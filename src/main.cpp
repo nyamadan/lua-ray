@@ -5,37 +5,20 @@
 int main(int argc, char* argv[]) {
     // 1. Init Lua and run script to load definitions and config
     sol::state lua;
-    bind_lua(lua);
+    AppConfig config;
+    bind_lua(lua, config);
     
     // Run the script. We expect it to define variables and functions, not necessarily return the texture yet.
     sol::object script_ret = run_script(lua, argc, argv);
     // Note: run_script already prints errors.
 
-    // 2. Read configuration from Lua via get_config function
-    int width = 800;
-    int height = 600;
-    std::string title_str = "Lua Ray Tracing";
-
-    sol::protected_function get_config = lua["app"]["get_config"];
-    if (get_config.valid()) {
-        sol::protected_function_result result = get_config();
-        if (result.valid()) {
-            sol::table config = result;
-            width = config["width"].get_or(800);
-            height = config["height"].get_or(600);
-            title_str = config["title"].get_or(std::string("Lua Ray Tracing"));
-        } else {
-            sol::error err = result;
-            std::cerr << "Lua Error in get_config: " << err.what() << std::endl;
-        }
-    } else {
-        std::cerr << "Warning: 'app.get_config' function not found. Using defaults." << std::endl;
-    }
+    // 2. Read configuration from Lua via app.configure (already handled during script execution)
+    // config object is populated by bind_lua -> app.configure callback
     
     // 3. Initialize SDL with config
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
-    if (!init_sdl(&window, &renderer, width, height, title_str.c_str())) {
+    if (!init_sdl(&window, &renderer, config.width, config.height, config.title.c_str())) {
         return 1;
     }
 

@@ -6,12 +6,18 @@
 #include <SDL3/SDL.h>
 #include <utility>
 
-void bind_lua(sol::state& lua) {
+void bind_lua(sol::state& lua, AppConfig& config) {
     lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::string, sol::lib::table);
     bind_imgui(lua);
 
     // Create 'app' namespace
     auto app = lua.create_named_table("app");
+
+    app.set_function("configure", [&](sol::table cfg) {
+        config.width = cfg["width"].get_or(800);
+        config.height = cfg["height"].get_or(600);
+        config.title = cfg["title"].get_or(std::string("Lua Ray Tracing"));
+    });
 
     // Provide a texture-based API. Preferred usage is to lock once, write many pixels, then unlock.
     app.set_function("draw_pixel_texture", [](void* texture, int x, int y, int r, int g, int b) {
