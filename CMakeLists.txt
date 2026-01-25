@@ -200,7 +200,11 @@ add_executable(lua-ray ${SOURCES})
 # Emscripten固有の設定
 if(EMSCRIPTEN)
     set_target_properties(lua-ray PROPERTIES SUFFIX ".html")
+    target_compile_options(lua-ray PRIVATE "-fexceptions")
+
     target_link_options(lua-ray PRIVATE
+        "-fexceptions"
+        "-sDISABLE_EXCEPTION_CATCHING=0"
         "-sUSE_SDL=0"
         "-sALLOW_MEMORY_GROWTH=1"
         "-sWASM=1"
