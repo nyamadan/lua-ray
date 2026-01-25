@@ -16,6 +16,10 @@ EmbreeDevice::EmbreeDevice() : device(nullptr) {
 }
 
 EmbreeDevice::~EmbreeDevice() {
+    release();
+}
+
+void EmbreeDevice::release() {
     if (device) {
         rtcReleaseDevice(device);
         device = nullptr;
@@ -28,7 +32,7 @@ EmbreeDevice::EmbreeDevice(EmbreeDevice&& other) noexcept : device(other.device)
 
 EmbreeDevice& EmbreeDevice::operator=(EmbreeDevice&& other) noexcept {
     if (this != &other) {
-        if (device) rtcReleaseDevice(device);
+        release();
         device = other.device;
         other.device = nullptr;
     }
@@ -46,6 +50,10 @@ EmbreeScene::EmbreeScene(EmbreeDevice& dev) : device(dev.get()), scene(nullptr) 
 }
 
 EmbreeScene::~EmbreeScene() {
+    release();
+}
+
+void EmbreeScene::release() {
     if (scene) {
         rtcReleaseScene(scene);
         scene = nullptr;

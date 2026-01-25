@@ -126,7 +126,8 @@ void bind_lua(sol::state& lua, AppContext& ctx) {
     // Bind EmbreeDevice
     lua.new_usertype<EmbreeDevice>("EmbreeDevice",
         sol::constructors<EmbreeDevice()>(),
-        "create_scene", [](EmbreeDevice& self) { return std::make_unique<EmbreeScene>(self); }
+        "create_scene", [](EmbreeDevice& self) { return std::make_unique<EmbreeScene>(self); },
+        "release", &EmbreeDevice::release
     );
 
     // Bind EmbreeScene
@@ -134,7 +135,8 @@ void bind_lua(sol::state& lua, AppContext& ctx) {
         "add_sphere", &EmbreeScene::add_sphere,
         "add_triangle", &EmbreeScene::add_triangle,
         "commit", &EmbreeScene::commit,
-        "intersect", &EmbreeScene::intersect
+        "intersect", &EmbreeScene::intersect,
+        "release", &EmbreeScene::release
     );
     // Bind AppData
     lua.new_usertype<AppData>("AppData",

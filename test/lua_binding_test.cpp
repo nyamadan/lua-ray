@@ -73,3 +73,33 @@ TEST_F(LuaBindingTest, AddTriangle) {
     )");
     ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
 }
+
+TEST_F(LuaBindingTest, ExplicitRelease) {
+    auto result = lua.safe_script(R"(
+        local device = EmbreeDevice.new()
+        local scene = device:create_scene()
+        
+        scene:add_sphere(0, 0, 0, 1.0)
+        scene:commit()
+        
+        -- Release scene explicitly
+        scene:release()
+        
+        -- Releasing again should be safe (idempotent)
+        scene:release()
+        
+        -- Release device explicitly
+        device:release()
+        
+        -- Releasing device again should be safe
+        device:release()
+        
+        -- Create new scene after release should fail safely or be handled (here create_scene calls rtcNewScene(device), if device is released it might be null)
+        -- In our wrapper, EmbreeScene checks if device is valid. If release() sets device=null, create_scene might create proper C++ obj but internal rtcScene will be null.
+        -- Let's check internal state behavior if possible, or just ensure no crash.
+        
+        local device2 = EmbreeDevice.new()
+        device2:release()
+    )");
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+}

@@ -13,6 +13,7 @@ function RayTracer.new(width, height)
     self.texture = nil
     self.device = nil
     self.scene = nil
+    self.current_scene_type = "sphere" -- Default scene
     return self
 end
 
@@ -52,16 +53,62 @@ function RayTracer:init()
         renderer = self.renderer,
         texture = self.texture
     })
+    
+    -- Initialize Embree Device once
+    print("Initializing Embree Device...")
+    self.device = EmbreeDevice.new()
+end
+
+function RayTracer:create_sphere_scene()
+    print("Creating Sphere Scene...")
+    -- Create scene: Sphere at (0, 0, 0) with radius 0.5
+    self.scene:add_sphere(0.0, 0.0, 0.0, 0.5)
+end
+
+function RayTracer:create_triangle_scene()
+    print("Creating Triangle Scene...")
+    -- Create scene: A single triangle
+    -- Vertices: (-0.5, -0.5, 0), (0.5, -0.5, 0), (0.0, 0.5, 0)
+    self.scene:add_triangle(
+        -0.5, -0.5, 0.0,
+         0.5, -0.5, 0.0,
+         0.0,  0.5, 0.0
+    )
+end
+
+function RayTracer:reset_scene(scene_type)
+    print("Resetting scene to: " .. scene_type)
+    
+    -- Explicitly release the old scene resources
+    if self.scene then
+        self.scene:release()
+    end
+
+    -- Clear current scene reference (Lua GC will handle the C++ object destruction eventually, but we released resources manually)
+    self.scene = nil
+    collectgarbage() -- Optional: Suggest GC to run
+    
+    -- Create new empty scene
+    self.scene = self.device:create_scene()
+    
+    self.current_scene_type = scene_type
+    
+    if scene_type == "sphere" then
+        self:create_sphere_scene()
+    elseif scene_type == "triangle" then
+        self:create_triangle_scene()
+    else
+        print("Unknown scene type, defaulting to sphere")
+        self:create_sphere_scene()
+    end
+    
+    self.scene:commit()
+    -- Re-render immediately after switch
+    self:render()
 end
 
 function RayTracer:init_scene()
-    print("Initializing Embree from Lua...")
-    self.device = EmbreeDevice.new()
-    self.scene = self.device:create_scene()
-
-    -- Create scene: Sphere at (0, 0, 0) with radius 0.5
-    self.scene:add_sphere(0.0, 0.0, 0.0, 0.5)
-    self.scene:commit()
+    self:reset_scene(self.current_scene_type)
 end
 
 function RayTracer:render()
@@ -69,6 +116,9 @@ function RayTracer:render()
 
     local aspectRatio = self.width / self.height
     local lightDirX, lightDirY, lightDirZ = 0.707, 0.0, 0.707
+    -- Normalize light
+    local len = math.sqrt(lightDirX*lightDirX + lightDirY*lightDirY + lightDirZ*lightDirZ)
+    lightDirX, lightDirY, lightDirZ = lightDirX/len, lightDirY/len, lightDirZ/len
     
     -- Render to AppData
     for y = 0, self.height - 1 do
@@ -94,10 +144,26 @@ function RayTracer:render()
                 -- Diffuse shading
                 local diffuse = nx * lightDirX + ny * lightDirY + nz * lightDirZ
                 if diffuse < 0 then diffuse = 0 end
+                
+                -- Add some ambient light
+                diffuse = 0.2 + 0.8 * diffuse
+                if diffuse > 1.0 then diffuse = 1.0 end
+                
                 local shade = math.floor(255 * diffuse)
-                self.data:set_pixel(x, y, shade, shade, shade)
+                
+                if self.current_scene_type == "triangle" then
+                     -- Yellowish tint for triangle
+                    self.data:set_pixel(x, y, math.floor(shade * 1.0), math.floor(shade * 0.8), math.floor(shade * 0.8))
+                else
+                    -- White/Gray for sphere
+                    self.data:set_pixel(x, y, shade, shade, shade)
+                end
             else
-                self.data:set_pixel(x, y, 128, 128, 128) -- Gray background
+                if self.current_scene_type == "triangle" then
+                     self.data:set_pixel(x, y, 50, 50, 60) -- Dark blue-ish background
+                else
+                     self.data:set_pixel(x, y, 128, 128, 128) -- Gray background
+                end
             end
         end
     end
@@ -112,6 +178,26 @@ function RayTracer:on_ui()
     if ImGui.Begin("Lua Ray Tracer Control") then
         ImGui.Text("Welcome to Lua Ray Tracer!")
         ImGui.Text(string.format("Resolution: %d x %d", self.width, self.height))
+        
+        ImGui.Separator()
+        
+        ImGui.Text("Scene Selection:")
+        local changed = false
+        local type = self.current_scene_type
+        
+        if ImGui.RadioButton("Sphere", type == "sphere") then
+            if type ~= "sphere" then
+                self:reset_scene("sphere")
+            end
+        end
+        ImGui.SameLine()
+        if ImGui.RadioButton("Triangle", type == "triangle") then
+            if type ~= "triangle" then
+                self:reset_scene("triangle")
+            end
+        end
+        
+        ImGui.Separator()
         
         if ImGui.Button("Re-Render") then
             print("Re-rendering requested")
@@ -135,8 +221,8 @@ raytracer:init()
 -- Initialize scene
 raytracer:init_scene()
 
--- Initial Render
-raytracer:render()
+-- Initial Render is called inside init_scene -> reset_scene, but we can call it here if we want strictly explicit
+-- raytracer:render() -- reset_scene already calls render
 
 -- Set global frame callback
 function app.on_frame()

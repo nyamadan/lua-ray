@@ -25,6 +25,14 @@ void bind_imgui(sol::state& lua) {
         return ImGui::Button(label); 
     });
 
-    imgui.set_function("SameLine", &ImGui::SameLine);
+    imgui.set_function("SameLine", sol::overload(
+        []() { ImGui::SameLine(); },
+        [](float offset_from_start_x) { ImGui::SameLine(offset_from_start_x); },
+        [](float offset_from_start_x, float spacing) { ImGui::SameLine(offset_from_start_x, spacing); }
+    ));
     imgui.set_function("Separator", &ImGui::Separator);
+
+    imgui.set_function("RadioButton", [](const char* label, bool active) -> bool {
+        return ImGui::RadioButton(label, active);
+    });
 }
