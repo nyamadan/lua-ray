@@ -46,6 +46,7 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/lua/lua.git
     GIT_TAG v5.4.6
     GIT_SHALLOW TRUE
+    EXCLUDE_FROM_ALL
 )
 FetchContent_MakeAvailable(lua_src)
 
@@ -66,6 +67,7 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/starwing/lbuffer.git
     GIT_TAG 1031755e5bd1cbf64f0761c2d5c402a678226768
     GIT_SHALLOW TRUE
+    EXCLUDE_FROM_ALL
 )
 
 # Populate lbuffer and apply patch
@@ -104,6 +106,8 @@ FetchContent_Declare(
     sol2
     GIT_REPOSITORY https://github.com/ThePhD/sol2.git
     GIT_TAG main
+    GIT_SHALLOW TRUE
+    EXCLUDE_FROM_ALL
 )
 FetchContent_GetProperties(sol2)
 if(NOT sol2_POPULATED)
@@ -123,6 +127,7 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
     GIT_TAG master
     GIT_SHALLOW TRUE
+    EXCLUDE_FROM_ALL
 )
 FetchContent_GetProperties(imgui)
 if(NOT imgui_POPULATED)

@@ -4,15 +4,13 @@
 #include "backends/imgui_impl_sdlrenderer3.h"
 #include <iostream>
 
-bool init_sdl(SDL_Window** window, SDL_Renderer** renderer) {
+bool init_sdl(SDL_Window** window, SDL_Renderer** renderer, int width, int height, const char* title) {
     if (SDL_Init(SDL_INIT_VIDEO) == false) {
         std::cerr << "SDL_Init failed: " << SDL_GetError() << std::endl;
         return false;
     }
 
-    int width = 800;
-    int height = 600;
-    *window = SDL_CreateWindow("Lua Ray Tracing", width, height, SDL_WINDOW_RESIZABLE);
+    *window = SDL_CreateWindow(title, width, height, SDL_WINDOW_RESIZABLE);
     *renderer = SDL_CreateRenderer(*window, NULL);
 
     if (!*window || !*renderer) {

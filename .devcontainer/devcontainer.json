@@ -31,10 +31,10 @@
   "customizations": {
     "vscode": {
       "extensions": [
-        "prettier.prettier-vscode",
         "ms-vscode.cmake-tools",
         "ms-vscode.cpptools",
         "ms-vscode.cpptools-extension-pack",
+        "esbenp.prettier-vscode",
         "vadimcn.vscode-lldb"
       ]
     }
