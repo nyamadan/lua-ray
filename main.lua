@@ -1,5 +1,12 @@
 -- SDL3 Ray Tracing in Lua
 
+-- シーンモジュールの読み込み
+local scenes = {
+    sphere = require("scenes.sphere"),
+    triangle = require("scenes.triangle"),
+    color_pattern = require("scenes.color_pattern")
+}
+
 -- RayTracer Class Definition
 RayTracer = {}
 RayTracer.__index = RayTracer
@@ -14,6 +21,7 @@ function RayTracer.new(width, height)
     self.device = nil
     self.scene = nil
     self.current_scene_type = "sphere" -- Default scene
+    self.current_scene_module = scenes.sphere -- Default scene module
     return self
 end
 
@@ -59,28 +67,6 @@ function RayTracer:init()
     self.device = EmbreeDevice.new()
 end
 
-function RayTracer:create_sphere_scene()
-    print("Creating Sphere Scene...")
-    -- Create scene: Sphere at (0, 0, 0) with radius 0.5
-    self.scene:add_sphere(0.0, 0.0, 0.0, 0.5)
-end
-
-function RayTracer:create_triangle_scene()
-    print("Creating Triangle Scene...")
-    -- Create scene: A single triangle
-    -- Vertices: (-0.5, -0.5, 0), (0.5, -0.5, 0), (0.0, 0.5, 0)
-    self.scene:add_triangle(
-        -0.5, -0.5, 0.0,
-         0.5, -0.5, 0.0,
-         0.0,  0.5, 0.0
-    )
-end
-
-function RayTracer:create_color_pattern_scene()
-    print("Creating Color Pattern Scene...")
-    -- No objects, just background pattern
-end
-
 function RayTracer:reset_scene(scene_type)
     print("Resetting scene to: " .. scene_type)
     
@@ -98,15 +84,14 @@ function RayTracer:reset_scene(scene_type)
     
     self.current_scene_type = scene_type
     
-    if scene_type == "sphere" then
-        self:create_sphere_scene()
-    elseif scene_type == "triangle" then
-        self:create_triangle_scene()
-    elseif scene_type == "color_pattern" then
-        self:create_color_pattern_scene()
+    -- シーンモジュールの取得と設定
+    self.current_scene_module = scenes[scene_type]
+    if self.current_scene_module then
+        self.current_scene_module.setup(self.scene)
     else
         print("Unknown scene type, defaulting to sphere")
-        self:create_sphere_scene()
+        self.current_scene_module = scenes.sphere
+        self.current_scene_module.setup(self.scene)
     end
     
     self.scene:commit()
@@ -152,54 +137,8 @@ function RayTracer:render()
             -- Intersect
             local hit, t, nx, ny, nz = self.scene:intersect(ox, oy, oz, dx, dy, dz)
 
-            if hit then
-                if self.current_scene_type == "color_pattern" then
-                    -- Normal based coloring
-                    -- Map normal [-1, 1] to [0, 1] -> [0, 255]
-                    local r = math.floor((nx + 1.0) * 0.5 * 255)
-                    local g = math.floor((ny + 1.0) * 0.5 * 255)
-                    local b = math.floor((nz + 1.0) * 0.5 * 255)
-                    -- 上下反転したY座標 (flip_y) を使用してピクセルを書き込む
-                    self.data:set_pixel(x, flip_y, r, g, b)
-                else
-                    -- Diffuse shading
-                    local diffuse = nx * lightDirX + ny * lightDirY + nz * lightDirZ
-                    if diffuse < 0 then diffuse = 0 end
-                    
-                    -- Add some ambient light
-                    diffuse = 0.2 + 0.8 * diffuse
-                    if diffuse > 1.0 then diffuse = 1.0 end
-                    
-                    local shade = math.floor(255 * diffuse)
-                    
-                    if self.current_scene_type == "triangle" then
-                         -- Yellowish tint for triangle
-                         -- 上下反転したY座標 (flip_y) を使用してピクセルを書き込む
-                        self.data:set_pixel(x, flip_y, math.floor(shade * 1.0), math.floor(shade * 0.8), math.floor(shade * 0.8))
-                    else
-                        -- White/Gray for sphere
-                        -- 上下反転したY座標 (flip_y) を使用してピクセルを書き込む
-                        self.data:set_pixel(x, flip_y, shade, shade, shade)
-                    end
-                end
-            else
-                if self.current_scene_type == "color_pattern" then
-                    -- Background based on Ray Direction
-                    local r = math.floor((dx + 1.0) * 0.5 * 255)
-                    local g = math.floor((dy + 1.0) * 0.5 * 255)
-                    local b = math.floor((dz + 1.0) * 0.5 * 255)
-                    -- 上下反転したY座標 (flip_y) を使用してピクセルを書き込む
-                    self.data:set_pixel(x, flip_y, r, g, b)
-                else 
-                    if self.current_scene_type == "triangle" then
-                         -- 上下反転したY座標 (flip_y) を使用してピクセルを書き込む
-                         self.data:set_pixel(x, flip_y, 50, 50, 60) -- Dark blue-ish background
-                    else
-                         -- 上下反転したY座標 (flip_y) を使用してピクセルを書き込む
-                         self.data:set_pixel(x, flip_y, 128, 128, 128) -- Gray background
-                    end
-                end
-            end
+            -- シーンモジュールのshade関数を使用してピクセルを描画
+            self.current_scene_module.shade(hit, x, flip_y, self.data, dx, dy, dz, nx, ny, nz, lightDirX, lightDirY, lightDirZ)
         end
     end
     
