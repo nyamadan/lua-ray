@@ -10,9 +10,9 @@
             "name": "Launch: lua-ray",
             "program": "build/gcc-debug/lua-ray",
             "args": [
-                "${workspaceFolder}/main.lua"
+                "./main.lua"
             ],
-            "cwd": "${workspaceFolder}/build/gcc-debug"
+            "cwd": "${workspaceFolder}"
         },
         {
             "type": "lldb",
@@ -20,7 +20,7 @@
             "name": "Launch: lua-ray-tests",
             "program": "build/gcc-debug/lua-ray-tests",
             "args": [],
-            "cwd": "${workspaceFolder}/build/gcc-debug"
+            "cwd": "${workspaceFolder}"
         }
     ]
 }
