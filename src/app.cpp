@@ -1,4 +1,7 @@
 #include "app.h"
+#include "imgui.h"
+#include "backends/imgui_impl_sdl3.h"
+#include "backends/imgui_impl_sdlrenderer3.h"
 #include <iostream>
 
 bool init_sdl(SDL_Window** window, SDL_Renderer** renderer) {
@@ -18,10 +21,6 @@ bool init_sdl(SDL_Window** window, SDL_Renderer** renderer) {
     }
     return true;
 }
-
-#include "imgui.h"
-#include "backends/imgui_impl_sdl3.h"
-#include "backends/imgui_impl_sdlrenderer3.h"
 
 void main_loop(SDL_Window* window, SDL_Renderer* renderer, SDL_Texture* texture, std::function<void()> on_frame) {
     // Setup Dear ImGui context
