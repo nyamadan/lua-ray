@@ -5,50 +5,32 @@
 int main(int argc, char* argv[]) {
     // 1. Init Lua and run script to load definitions and config
     sol::state lua;
-    AppConfig config;
-    bind_lua(lua, config);
+    AppContext ctx;
+    bind_lua(lua, ctx);
     
     // Run the script. We expect it to define variables and functions, not necessarily return the texture yet.
     sol::object script_ret = run_script(lua, argc, argv);
     // Note: run_script already prints errors.
 
     // 2. Read configuration from Lua via app.configure (already handled during script execution)
-    // config object is populated by bind_lua -> app.configure callback
+    // ctx object is populated by bind_lua -> app.configure callback which also initializes SDL.
     
-    // 3. Initialize SDL with config
-    SDL_Window* window = nullptr;
-    SDL_Renderer* renderer = nullptr;
-    if (!init_sdl(&window, &renderer, config.width, config.height, config.title.c_str())) {
+    // 3. Check if initialization happened
+    if (!ctx.window || !ctx.renderer || !ctx.texture) {
+        std::cerr << "Error: App framework was not initialized by Lua script. Did you call app.configure()?" << std::endl;
         return 1;
     }
+    
+    SDL_Window* window = ctx.window;
+    SDL_Renderer* renderer = ctx.renderer;
+    SDL_Texture* texture = ctx.texture;
 
-    // 4. Pass renderer to Lua
+    // 4. Pass renderer to Lua - No longer needed as Lua called configure to create it.
+    // However, if other parts of API need it via get_sdl_renderer:
     lua["app"]["get_sdl_renderer"] = [renderer]() -> void* { return static_cast<void*>(renderer); };
 
-    // 5. Call app_init to create texture and setup scene
-    SDL_Texture* texture = nullptr;
-    sol::protected_function app_init = lua["app"]["init"];
-    if (app_init.valid()) {
-        sol::protected_function_result result = app_init();
-        if (result.valid()) {
-            sol::object ret = result;
-            if (ret.get_type() == sol::type::lightuserdata) {
-                texture = static_cast<SDL_Texture*>(ret.as<void*>());
-            }
-        } else {
-            sol::error err = result;
-            std::cerr << "Lua Error in app.init: " << err.what() << std::endl;
-        }
-    } else {
-        // Fallback or explicit warning
-        // If the script returned a texture (old style), we can use it, but better to enforce new structure.
-        if (script_ret.is<void*>()) { 
-             texture = static_cast<SDL_Texture*>(script_ret.as<void*>());
-        }
-        if (!texture) {
-            std::cerr << "Warning: 'app.init' function not found and script did not return a texture." << std::endl;
-        }
-    }
+    // 5. Call app_init - DEPRECATED / REMOVED
+    // Initialization logic should have happened in script top-level or via app.configure return value.
 
     // 6. Setup on_frame callback
     std::function<void()> on_frame_callback = nullptr;

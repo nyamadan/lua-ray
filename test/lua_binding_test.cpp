@@ -6,8 +6,8 @@ class LuaBindingTest : public ::testing::Test {
 protected:
     void SetUp() override {
         // Init Lua
-        AppConfig config;
-        bind_lua(lua, config);
+        AppContext ctx;
+        bind_lua(lua, ctx);
     }
 
     void TearDown() override {

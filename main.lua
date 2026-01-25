@@ -5,55 +5,44 @@
 local WIDTH = 800
 local HEIGHT = 600
 
--- Configuration (Called by C++ before SDL init)
+-- Explicit Initialization Sequence
+if not app.init_video() then
+    print("Error: Failed to init video")
+    return
+end
+
+local window = app.create_window(WIDTH, HEIGHT, "Lua Ray Tracing (Explicit DI)")
+if window == nil then
+    print("Error: Failed to create window")
+    return
+end
+
+local renderer = app.create_renderer(window)
+if renderer == nil then
+    print("Error: Failed to create renderer")
+    return
+end
+
+local texture = app.create_texture(renderer, WIDTH, HEIGHT)
+if texture == nil then
+    print("Error: Failed to create texture")
+    return
+end
+
 app.configure({
     width = WIDTH,
     height = HEIGHT,
-    title = "Lua Ray Tracing (Controlled via Lua)"
+    title = "Lua Ray Tracing (Explicit DI)",
+    window = window,
+    renderer = renderer,
+    texture = texture
 })
 
 -- State variables
 local sdl_width = WIDTH
 local sdl_height = HEIGHT
-local texture = nil
 local device = nil
 local scene = nil
-
--- Initialize Application (Called by C++ after SDL init)
-function app.init()
-    -- Config is already set via app.configure, but SDL init happens before this.
-    -- We can just assume global texture size matches what we asked for, or pass it in.
-    -- For now, we'll just use the globals which should match what we configured if C++ respected it.
-    -- Or we can query window size if we had that API.
-    -- Let's just use hardcoded for now matching configure, or rely on variables if we want dynamic.
-    -- Actually, let's just use the values we set.
-    sdl_width = WIDTH 
-    sdl_height = HEIGHT
-
-    print("Initializing Embree from Lua...")
-    device = EmbreeDevice.new()
-    scene = device:create_scene()
-
-    -- Create the texture from the renderer provided by the host (lightuserdata)
-    -- Create the texture from the renderer provided by the host (lightuserdata)
-    -- 'renderer' global is set by C++ before calling this function
-    local renderer = app.get_sdl_renderer()
-    if renderer == nil then
-        print("Error: Renderer is nil")
-        return nil
-    end
-    
-    texture = app.create_texture(renderer, sdl_width, sdl_height)
-
-    -- Create scene: Sphere at (0, 0, 0) with radius 0.5
-    scene:add_sphere(0.0, 0.0, 0.0, 0.5)
-    scene:commit()
-    
-    -- Perform initial render
-    render_scene()
-    
-    return texture
-end
 
 function render_scene()
     print("Rendering scene...")
@@ -100,6 +89,22 @@ function render_scene()
     end
     print("Lua render finished.")
 end
+
+-- Initialize Application
+-- Config is set implicitly by create_window logic, explicit variables maintained here.
+sdl_width = WIDTH 
+sdl_height = HEIGHT
+
+print("Initializing Embree from Lua...")
+device = EmbreeDevice.new()
+scene = device:create_scene()
+
+-- Create scene: Sphere at (0, 0, 0) with radius 0.5
+scene:add_sphere(0.0, 0.0, 0.0, 0.5)
+scene:commit()
+
+-- Perform initial render
+render_scene()
 
 -- GUI Callback (called every frame from C++ loop)
 function app.on_frame()

@@ -3,20 +3,73 @@
 #include "imgui_lua_binding.h"
 #include "embree_wrapper.h"
 #include <iostream>
-#include <SDL3/SDL.h>
-#include <utility>
+#include "app.h"
 
-void bind_lua(sol::state& lua, AppConfig& config) {
+void bind_lua(sol::state& lua, AppContext& ctx) {
     lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::string, sol::lib::table);
     bind_imgui(lua);
 
     // Create 'app' namespace
     auto app = lua.create_named_table("app");
 
+    // 1. Init Video
+    // 1. Init Video
+    app.set_function("init_video", [&]() -> bool {
+        if (SDL_Init(SDL_INIT_VIDEO) == false) {
+            std::cerr << "SDL_Init failed: " << SDL_GetError() << std::endl;
+            return false;
+        }
+        return true;
+    });
+
+    // 2. Create Window (Factory)
+    app.set_function("create_window", [&](int width, int height, std::string title) -> void* {
+        SDL_Window* window = SDL_CreateWindow(title.c_str(), width, height, SDL_WINDOW_RESIZABLE);
+        if (!window) {
+            std::cerr << "SDL_CreateWindow failed: " << SDL_GetError() << std::endl;
+            return nullptr;
+        }
+        return static_cast<void*>(window);
+    });
+
+    // 3. Create Renderer (Factory)
+    app.set_function("create_renderer", [&](void* window) -> void* {
+        if (!window) return nullptr;
+        SDL_Window* win = static_cast<SDL_Window*>(window);
+        SDL_Renderer* renderer = SDL_CreateRenderer(win, NULL);
+        if (!renderer) {
+            std::cerr << "SDL_CreateRenderer failed: " << SDL_GetError() << std::endl;
+            return nullptr;
+        }
+        return static_cast<void*>(renderer);
+    });
+
+    // 4. Create Texture (Factory)
+    app.set_function("create_texture", [&](void* renderer, int width, int height) -> void* {
+        if (!renderer) return nullptr;
+        SDL_Renderer* rend = static_cast<SDL_Renderer*>(renderer);
+        SDL_Texture* tex = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, width, height);
+        if (!tex) {
+            std::cerr << "SDL_CreateTexture failed: " << SDL_GetError() << std::endl;
+            return nullptr;
+        }
+        return static_cast<void*>(tex);
+    });
+
+    // 5. Configure (Dependency Injection)
     app.set_function("configure", [&](sol::table cfg) {
-        config.width = cfg["width"].get_or(800);
-        config.height = cfg["height"].get_or(600);
-        config.title = cfg["title"].get_or(std::string("Lua Ray Tracing"));
+        ctx.width = cfg["width"].get_or(800);
+        ctx.height = cfg["height"].get_or(600);
+        ctx.title = cfg["title"].get_or(std::string("Lua Ray Tracing"));
+        
+        sol::object win_obj = cfg["window"];
+        if (win_obj.is<void*>()) ctx.window = static_cast<SDL_Window*>(win_obj.as<void*>());
+        
+        sol::object ren_obj = cfg["renderer"];
+        if (ren_obj.is<void*>()) ctx.renderer = static_cast<SDL_Renderer*>(ren_obj.as<void*>());
+        
+        sol::object tex_obj = cfg["texture"];
+        if (tex_obj.is<void*>()) ctx.texture = static_cast<SDL_Texture*>(tex_obj.as<void*>());
     });
 
     // Provide a texture-based API. Preferred usage is to lock once, write many pixels, then unlock.
@@ -60,13 +113,7 @@ void bind_lua(sol::state& lua, AppConfig& config) {
         *pixel = (r) | (g << 8) | (b << 16) | (255 << 24);
     });
 
-    // Create/destroy texture helpers. Lua creates texture from renderer lightuserdata.
-    app.set_function("create_texture", [](void* renderer, int w, int h) -> void* {
-        if (!renderer) return nullptr;
-        SDL_Renderer* rend = static_cast<SDL_Renderer*>(renderer);
-        SDL_Texture* tex = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, w, h);
-        return static_cast<void*>(tex);
-    });
+
 
     app.set_function("destroy_texture", [](void* texture) {
         if (!texture) return;

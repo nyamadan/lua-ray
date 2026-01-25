@@ -2,31 +2,30 @@
 
 local WIDTH = 800
 local HEIGHT = 600
-local texture = nil
+-- Explicit Initialization Sequence
+if not app.init_video() then error("Failed to init video") end
+local window = app.create_window(WIDTH, HEIGHT, "Lua Ray Tracing - Triangles")
+if not window then error("Failed to create window") end
+local renderer = app.create_renderer(window)
+if not renderer then error("Failed to create renderer") end
+local texture = app.create_texture(renderer, WIDTH, HEIGHT)
+if not texture then error("Failed to create texture") end
 
--- Configuration
 app.configure({
     width = WIDTH,
     height = HEIGHT,
-    title = "Lua Ray Tracing - Triangles"
+    title = "Lua Ray Tracing - Triangles",
+    window = window,
+    renderer = renderer,
+    texture = texture
 })
 
-function app.init()
-    print("Initializing Embree from Lua...")
-    local device = EmbreeDevice.new()
-    local scene = device:create_scene()
+print("Initializing Embree from Lua...")
+local device = EmbreeDevice.new()
+local scene = device:create_scene()
 
-    -- Create the texture from the renderer provided by the host (lightuserdata)
-    local renderer = app.get_sdl_renderer()
-    if renderer == nil then
-        print("Error: Renderer is nil")
-        return nil
-    end
-
-    texture = app.create_texture(renderer, WIDTH, HEIGHT)
-
-    -- Create scene: A single triangle
-    -- Vertices: (-0.5, -0.5, 0), (0.5, -0.5, 0), (0.0, 0.5, 0)
+-- Create scene: A single triangle
+-- Vertices: (-0.5, -0.5, 0), (0.5, -0.5, 0), (0.0, 0.5, 0)
     print("Adding triangle...")
     scene:add_triangle(
         -0.5, -0.5, 0.0,
@@ -86,9 +85,7 @@ function app.init()
         app.unlock_texture(texture)
     end
 
-    print("Lua render finished.")
-    return texture
-end
+print("Lua render finished.")
 
 function app.on_frame()
     -- Optional: Add GUI or animation updates here
