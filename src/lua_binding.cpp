@@ -1,5 +1,6 @@
 
 #include "lua_binding.h"
+#include "imgui_lua_binding.h"
 #include "embree_wrapper.h"
 #include <iostream>
 #include <SDL3/SDL.h>
@@ -7,6 +8,7 @@
 
 void bind_lua(sol::state& lua) {
     lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::string, sol::lib::table);
+    bind_imgui(lua);
 
     // Provide a texture-based API. Preferred usage is to lock once, write many pixels, then unlock.
     // Legacy convenience: api_draw_pixel_texture still exists but callers should prefer lock/unlock + api_draw_pixel_locked.

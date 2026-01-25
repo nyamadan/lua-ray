@@ -25,7 +25,18 @@ int main(int argc, char* argv[]) {
     }
 
     // Enter main loop (texture may be null)
-    main_loop(renderer, texture);
+    std::function<void()> on_frame_callback = nullptr;
+    sol::protected_function on_frame = lua["on_frame"];
+    if (on_frame.valid()) {
+        on_frame_callback = [&on_frame]() {
+            sol::protected_function_result result = on_frame();
+            if (!result.valid()) {
+                sol::error err = result;
+                std::cerr << "Lua Error in on_frame: " << err.what() << std::endl;
+            }
+        };
+    }
+    main_loop(window, renderer, texture, on_frame_callback);
 
     // Cleanup (destroy texture if created)
     if (texture) SDL_DestroyTexture(texture);

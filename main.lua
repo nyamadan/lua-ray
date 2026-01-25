@@ -62,5 +62,19 @@ function render()
     return texture
 end
 
+
+-- GUI Callback (called every frame from C++ loop)
+function on_frame()
+    if ImGui.Begin("Lua Ray Tracer Control") then
+        ImGui.Text("Welcome to Lua Ray Tracer!")
+        ImGui.Text(string.format("Resolution: %d x %d", width, height))
+        
+        if ImGui.Button("Reload Scene (Not Implemented)") then
+            print("Reload requested")
+        end
+    end
+    ImGui.End()
+end
+
 -- Call render and return the texture to C++
 return render()
