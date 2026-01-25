@@ -207,7 +207,7 @@ if(EMSCRIPTEN)
         "-msse"
         "-msse2"
         # Bundle main.lua and scenes
-        "--embed-file" "${CMAKE_CURRENT_SOURCE_DIR}/main.lua@/main.lua"
+        "--preload-file" "${CMAKE_CURRENT_SOURCE_DIR}/main.lua@/main.lua"
         "--preload-file" "${CMAKE_CURRENT_SOURCE_DIR}/scenes@/scenes"
     )
 endif()
