@@ -24,7 +24,7 @@ function RayTracer:init()
     end
 
     -- 2. Create Window
-    self.window = app.create_window(self.width, self.height, "Lua Ray Tracing (OO Refactor)")
+    self.window = app.create_window(self.width, self.height, "Lua Ray Tracing")
     if self.window == nil then
         error("Error: Failed to create window")
     end
@@ -128,7 +128,12 @@ function RayTracer:render()
     lightDirX, lightDirY, lightDirZ = lightDirX/len, lightDirY/len, lightDirZ/len
     
     -- Render to AppData
+    -- 注意: テクスチャ書き込み時にY座標を上下反転している (flip_y = self.height - 1 - y)
+    -- これは画像座標系（上が0）からテクスチャ座標系への変換のため
     for y = 0, self.height - 1 do
+        -- Y座標を上下反転してテクスチャに書き込む
+        local flip_y = self.height - 1 - y
+        
         for x = 0, self.width - 1 do
             -- Normalize pixel coordinates [-1, 1]
             local u = (2.0 * x - self.width) / self.width
@@ -154,7 +159,8 @@ function RayTracer:render()
                     local r = math.floor((nx + 1.0) * 0.5 * 255)
                     local g = math.floor((ny + 1.0) * 0.5 * 255)
                     local b = math.floor((nz + 1.0) * 0.5 * 255)
-                    self.data:set_pixel(x, y, r, g, b)
+                    -- 上下反転したY座標 (flip_y) を使用してピクセルを書き込む
+                    self.data:set_pixel(x, flip_y, r, g, b)
                 else
                     -- Diffuse shading
                     local diffuse = nx * lightDirX + ny * lightDirY + nz * lightDirZ
@@ -168,10 +174,12 @@ function RayTracer:render()
                     
                     if self.current_scene_type == "triangle" then
                          -- Yellowish tint for triangle
-                        self.data:set_pixel(x, y, math.floor(shade * 1.0), math.floor(shade * 0.8), math.floor(shade * 0.8))
+                         -- 上下反転したY座標 (flip_y) を使用してピクセルを書き込む
+                        self.data:set_pixel(x, flip_y, math.floor(shade * 1.0), math.floor(shade * 0.8), math.floor(shade * 0.8))
                     else
                         -- White/Gray for sphere
-                        self.data:set_pixel(x, y, shade, shade, shade)
+                        -- 上下反転したY座標 (flip_y) を使用してピクセルを書き込む
+                        self.data:set_pixel(x, flip_y, shade, shade, shade)
                     end
                 end
             else
@@ -180,12 +188,15 @@ function RayTracer:render()
                     local r = math.floor((dx + 1.0) * 0.5 * 255)
                     local g = math.floor((dy + 1.0) * 0.5 * 255)
                     local b = math.floor((dz + 1.0) * 0.5 * 255)
-                    self.data:set_pixel(x, y, r, g, b)
+                    -- 上下反転したY座標 (flip_y) を使用してピクセルを書き込む
+                    self.data:set_pixel(x, flip_y, r, g, b)
                 else 
                     if self.current_scene_type == "triangle" then
-                         self.data:set_pixel(x, y, 50, 50, 60) -- Dark blue-ish background
+                         -- 上下反転したY座標 (flip_y) を使用してピクセルを書き込む
+                         self.data:set_pixel(x, flip_y, 50, 50, 60) -- Dark blue-ish background
                     else
-                         self.data:set_pixel(x, y, 128, 128, 128) -- Gray background
+                         -- 上下反転したY座標 (flip_y) を使用してピクセルを書き込む
+                         self.data:set_pixel(x, flip_y, 128, 128, 128) -- Gray background
                     end
                 end
             end
