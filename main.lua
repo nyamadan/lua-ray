@@ -76,6 +76,11 @@ function RayTracer:create_triangle_scene()
     )
 end
 
+function RayTracer:create_color_pattern_scene()
+    print("Creating Color Pattern Scene...")
+    -- No objects, just background pattern
+end
+
 function RayTracer:reset_scene(scene_type)
     print("Resetting scene to: " .. scene_type)
     
@@ -97,6 +102,8 @@ function RayTracer:reset_scene(scene_type)
         self:create_sphere_scene()
     elseif scene_type == "triangle" then
         self:create_triangle_scene()
+    elseif scene_type == "color_pattern" then
+        self:create_color_pattern_scene()
     else
         print("Unknown scene type, defaulting to sphere")
         self:create_sphere_scene()
@@ -141,28 +148,45 @@ function RayTracer:render()
             local hit, t, nx, ny, nz = self.scene:intersect(ox, oy, oz, dx, dy, dz)
 
             if hit then
-                -- Diffuse shading
-                local diffuse = nx * lightDirX + ny * lightDirY + nz * lightDirZ
-                if diffuse < 0 then diffuse = 0 end
-                
-                -- Add some ambient light
-                diffuse = 0.2 + 0.8 * diffuse
-                if diffuse > 1.0 then diffuse = 1.0 end
-                
-                local shade = math.floor(255 * diffuse)
-                
-                if self.current_scene_type == "triangle" then
-                     -- Yellowish tint for triangle
-                    self.data:set_pixel(x, y, math.floor(shade * 1.0), math.floor(shade * 0.8), math.floor(shade * 0.8))
+                if self.current_scene_type == "color_pattern" then
+                    -- Normal based coloring
+                    -- Map normal [-1, 1] to [0, 1] -> [0, 255]
+                    local r = math.floor((nx + 1.0) * 0.5 * 255)
+                    local g = math.floor((ny + 1.0) * 0.5 * 255)
+                    local b = math.floor((nz + 1.0) * 0.5 * 255)
+                    self.data:set_pixel(x, y, r, g, b)
                 else
-                    -- White/Gray for sphere
-                    self.data:set_pixel(x, y, shade, shade, shade)
+                    -- Diffuse shading
+                    local diffuse = nx * lightDirX + ny * lightDirY + nz * lightDirZ
+                    if diffuse < 0 then diffuse = 0 end
+                    
+                    -- Add some ambient light
+                    diffuse = 0.2 + 0.8 * diffuse
+                    if diffuse > 1.0 then diffuse = 1.0 end
+                    
+                    local shade = math.floor(255 * diffuse)
+                    
+                    if self.current_scene_type == "triangle" then
+                         -- Yellowish tint for triangle
+                        self.data:set_pixel(x, y, math.floor(shade * 1.0), math.floor(shade * 0.8), math.floor(shade * 0.8))
+                    else
+                        -- White/Gray for sphere
+                        self.data:set_pixel(x, y, shade, shade, shade)
+                    end
                 end
             else
-                if self.current_scene_type == "triangle" then
-                     self.data:set_pixel(x, y, 50, 50, 60) -- Dark blue-ish background
-                else
-                     self.data:set_pixel(x, y, 128, 128, 128) -- Gray background
+                if self.current_scene_type == "color_pattern" then
+                    -- Background based on Ray Direction
+                    local r = math.floor((dx + 1.0) * 0.5 * 255)
+                    local g = math.floor((dy + 1.0) * 0.5 * 255)
+                    local b = math.floor((dz + 1.0) * 0.5 * 255)
+                    self.data:set_pixel(x, y, r, g, b)
+                else 
+                    if self.current_scene_type == "triangle" then
+                         self.data:set_pixel(x, y, 50, 50, 60) -- Dark blue-ish background
+                    else
+                         self.data:set_pixel(x, y, 128, 128, 128) -- Gray background
+                    end
                 end
             end
         end
@@ -194,6 +218,12 @@ function RayTracer:on_ui()
         if ImGui.RadioButton("Triangle", type == "triangle") then
             if type ~= "triangle" then
                 self:reset_scene("triangle")
+            end
+        end
+        ImGui.SameLine()
+        if ImGui.RadioButton("Color Pattern", type == "color_pattern") then
+            if type ~= "color_pattern" then
+                self:reset_scene("color_pattern")
             end
         end
         
