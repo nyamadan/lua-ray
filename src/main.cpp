@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
     }
 
     // 4. Pass renderer to Lua
-    lua["renderer"] = static_cast<void*>(renderer);
+    lua["app"]["get_sdl_renderer"] = [renderer]() -> void* { return static_cast<void*>(renderer); };
 
     // 5. Call app_init to create texture and setup scene
     SDL_Texture* texture = nullptr;

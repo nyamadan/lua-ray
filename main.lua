@@ -27,13 +27,15 @@ function app_init()
     scene = device:create_scene()
 
     -- Create the texture from the renderer provided by the host (lightuserdata)
+    -- Create the texture from the renderer provided by the host (lightuserdata)
     -- 'renderer' global is set by C++ before calling this function
+    local renderer = app.get_sdl_renderer()
     if renderer == nil then
         print("Error: Renderer is nil")
         return nil
     end
     
-    texture = api_create_texture(renderer, sdl_width, sdl_height)
+    texture = app.create_texture(renderer, sdl_width, sdl_height)
 
     -- Create scene: Sphere at (0, 0, 0) with radius 0.5
     scene:add_sphere(0.0, 0.0, 0.0, 0.5)
@@ -54,7 +56,7 @@ function render_scene()
     local lightDirX, lightDirY, lightDirZ = 0.707, 0.0, 0.707
 
     -- Lock once, write many pixels, then unlock
-    local pixels, pitch = api_lock_texture(texture)
+    local pixels, pitch = app.lock_texture(texture)
     if pixels ~= nil then
         for y = 0, height - 1 do
             for x = 0, width - 1 do
@@ -80,13 +82,13 @@ function render_scene()
                     local diffuse = nx * lightDirX + ny * lightDirY + nz * lightDirZ
                     if diffuse < 0 then diffuse = 0 end
                     local shade = math.floor(255 * diffuse)
-                    api_draw_pixel_locked(pixels, pitch, x, y, shade, shade, shade)
+                    app.draw_pixel_locked(pixels, pitch, x, y, shade, shade, shade)
                 else
-                    api_draw_pixel_locked(pixels, pitch, x, y, 128, 128, 128) -- Gray background
+                    app.draw_pixel_locked(pixels, pitch, x, y, 128, 128, 128) -- Gray background
                 end
             end
         end
-        api_unlock_texture(texture)
+        app.unlock_texture(texture)
     end
     print("Lua render finished.")
 end
