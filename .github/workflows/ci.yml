@@ -111,11 +111,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: emscripten-build
-          path: |
-            lua-ray.html
-            lua-ray.js
-            lua-ray.wasm
-            lua-ray.data
+          path: artifacts/emscripten
           if-no-files-found: error
 
       - name: Configure (Win32)
@@ -136,5 +132,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: win32-build
-          path: artifacts/win32/*
+          path: artifacts/win32
           if-no-files-found: error
