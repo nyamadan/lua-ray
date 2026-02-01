@@ -17,7 +17,7 @@ function RayTracer.new(width, height)
     self.current_scene_module = nil -- モジュールはreset_sceneで読み込まれる
     self.workers = {} -- Array of ThreadWorker
     self.render_coroutine = nil -- Coroutine for single-threaded rendering
-    self.use_multithreading = true -- マルチスレッド使用フラグ
+    self.use_multithreading = false -- マルチスレッド使用フラグ
     self.NUM_THREADS = 8 -- スレッド数
     return self
 end
@@ -244,16 +244,16 @@ function RayTracer:on_ui()
 
         -- Render Mode Selection
         ImGui.Text("Render Mode:")
-        if ImGui.RadioButton("Multi-threaded", self.use_multithreading) then
-            if not self.use_multithreading then
-                self.use_multithreading = true
+        if ImGui.RadioButton("Single-threaded", not self.use_multithreading) then
+            if self.use_multithreading then
+                self.use_multithreading = false
                 self:render()
             end
         end
         ImGui.SameLine()
-        if ImGui.RadioButton("Single-threaded", not self.use_multithreading) then
-            if self.use_multithreading then
-                self.use_multithreading = false
+        if ImGui.RadioButton("Multi-threaded", self.use_multithreading) then
+            if not self.use_multithreading then
+                self.use_multithreading = true
                 self:render()
             end
         end
