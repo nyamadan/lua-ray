@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   ci:
@@ -30,8 +30,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
-          cache: 'pnpm'
+          node-version: "lts/*"
+          cache: "pnpm"
 
       - name: Install Node dependencies
         run: pnpm install
@@ -74,6 +74,15 @@ jobs:
             g++-mingw-w64-x86-64 \
             ccache
 
+      - name: Configure (GCC)
+        run: pnpm run configure
+
+      - name: Build (GCC)
+        run: pnpm run build -j2
+
+      - name: Test
+        run: pnpm run test
+
       - name: Setup Emscripten
         run: |
           if [ ! -d "${{ github.workspace }}/.emsdk" ]; then
@@ -95,12 +104,3 @@ jobs:
 
       - name: Build (Win32)
         run: pnpm run build:win32 -j2
-
-      - name: Configure (GCC)
-        run: pnpm run configure
-
-      - name: Build (GCC)
-        run: pnpm run build -j2
-
-      - name: Test
-        run: pnpm run test
