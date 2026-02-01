@@ -102,10 +102,10 @@ jobs:
       - name: Prepare Emscripten artifacts
         run: |
           mkdir -p artifacts/emscripten
-          cp build/emscripten-release/lua-ray.html lua-ray.html
-          cp build/emscripten-release/lua-ray.js lua-ray.js
-          cp build/emscripten-release/lua-ray.wasm lua-ray.wasm
-          cp build/emscripten-release/lua-ray.data lua-ray.data
+          cp build/emscripten-release/lua-ray.html artifacts/emscripten
+          cp build/emscripten-release/lua-ray.js artifacts/emscripten
+          cp build/emscripten-release/lua-ray.wasm artifacts/emscripten
+          cp build/emscripten-release/lua-ray.data artifacts/emscripten
 
       - name: Upload Emscripten artifacts
         uses: actions/upload-artifact@v4
