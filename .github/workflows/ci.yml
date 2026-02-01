@@ -99,15 +99,23 @@ jobs:
       - name: Build (Emscripten)
         run: pnpm run build:emscripten -j2
 
+      - name: Prepare Emscripten artifacts
+        run: |
+          mkdir -p artifacts/emscripten
+          cp build/emscripten-release/lua-ray.html lua-ray.html
+          cp build/emscripten-release/lua-ray.js lua-ray.js
+          cp build/emscripten-release/lua-ray.wasm lua-ray.wasm
+          cp build/emscripten-release/lua-ray.data lua-ray.data
+
       - name: Upload Emscripten artifacts
         uses: actions/upload-artifact@v4
         with:
           name: emscripten-build
           path: |
-            build/emscripten-release/lua-ray.html
-            build/emscripten-release/lua-ray.js
-            build/emscripten-release/lua-ray.wasm
-            build/emscripten-release/lua-ray.data
+            lua-ray.html
+            lua-ray.js
+            lua-ray.wasm
+            lua-ray.data
           if-no-files-found: error
 
       - name: Configure (Win32)
@@ -116,13 +124,17 @@ jobs:
       - name: Build (Win32)
         run: pnpm run build:win32 -j2
 
+      - name: Prepare Win32 artifacts
+        run: |
+          mkdir -p artifacts/win32
+          cp build/win32-release/lua-ray.exe artifacts/win32/
+          cp main.lua artifacts/win32/
+          cp -r lib artifacts/win32/
+          cp -r scenes artifacts/win32/
+
       - name: Upload Win32 artifacts
         uses: actions/upload-artifact@v4
         with:
           name: win32-build
-          path: |
-            build/win32-release/lua-ray.exe
-            main.lua
-            lib/**/*.lua
-            scenes/**/*.lua
+          path: artifacts/win32/*
           if-no-files-found: error
