@@ -16,6 +16,7 @@ function RayTracer.new(width, height)
     self.current_scene_type = "color_pattern" -- Default scene
     self.current_scene_module = nil -- モジュールはreset_sceneで読み込まれる
     self.render_coroutine = nil -- レンダリング用コルーチン
+    self.render_progress = 0.0 -- レンダリング進行状況 (0.0〜1.0)
     return self
 end
 
@@ -128,23 +129,27 @@ function RayTracer:create_render_coroutine()
     return coroutine.create(function()
         local start_time = os.clock()
         local time_limit = 0.01  -- 10ms
+        local total_pixels = self.width * self.height
+        local rendered_pixels = 0
         
         for y = 0, self.height - 1 do
             for x = 0, self.width - 1 do
                 -- シーンモジュールのshade関数を使用してピクセルを描画
                 self.current_scene_module.shade(self.data, x, y)
+                rendered_pixels = rendered_pixels + 1
                 
                 -- 時間チェック
                 local elapsed = os.clock() - start_time
                 if elapsed >= time_limit then
-                    coroutine.yield()  -- 次のフレームへ
+                    local progress = rendered_pixels / total_pixels
+                    coroutine.yield(progress)  -- 進行状況を返して次のフレームへ
                     start_time = os.clock()  -- 時間をリセット
                 end
             end
         end
         
         -- レンダリング完了
-        return true
+        return 1.0  -- 100%完了
     end)
 end
 
@@ -153,16 +158,20 @@ function RayTracer:update()
     if self.render_coroutine then
         local status = coroutine.status(self.render_coroutine)
         if status == "suspended" then
-            local ok, result = coroutine.resume(self.render_coroutine)
+            local ok, progress = coroutine.resume(self.render_coroutine)
             if not ok then
-                print("Coroutine error: " .. tostring(result))
+                print("Coroutine error: " .. tostring(progress))
                 self.render_coroutine = nil
-            elseif result == true or coroutine.status(self.render_coroutine) == "dead" then
+                self.render_progress = 0.0
+            elseif coroutine.status(self.render_coroutine) == "dead" then
                 -- レンダリング完了
                 print("Lua render finished.")
                 self:update_texture()
                 self.render_coroutine = nil
+                self.render_progress = 1.0
             else
+                -- 進行状況を更新
+                self.render_progress = progress or 0.0
                 -- レンダリング中、テクスチャを更新
                 self:update_texture()
             end
@@ -209,6 +218,19 @@ function RayTracer:on_ui()
         if ImGui.Button("Reload Scene") then
             print("Reloading scene module and re-rendering")
             self:reset_scene(self.current_scene_type, true) -- force_reload = true
+        end
+        
+        ImGui.Separator()
+        
+        -- レンダリング進行状況の表示
+        ImGui.Text("Render Progress:")
+        local progress_text = string.format("%.1f%%", self.render_progress * 100)
+        ImGui.ProgressBar(self.render_progress, progress_text)
+        
+        if self.render_coroutine then
+            ImGui.Text("Status: Rendering...")
+        else
+            ImGui.Text("Status: Idle")
         end
     end
     ImGui.End()

@@ -35,4 +35,9 @@ void bind_imgui(sol::state& lua) {
     imgui.set_function("RadioButton", [](const char* label, bool active) -> bool {
         return ImGui::RadioButton(label, active);
     });
+
+    imgui.set_function("ProgressBar", sol::overload(
+        [](float fraction) { ImGui::ProgressBar(fraction); },
+        [](float fraction, const char* overlay) { ImGui::ProgressBar(fraction, ImVec2(-FLT_MIN, 0), overlay); }
+    ));
 }
