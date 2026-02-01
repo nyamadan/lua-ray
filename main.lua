@@ -1,12 +1,5 @@
 -- SDL3 Ray Tracing in Lua
 
--- シーンモジュールの読み込み
-local scenes = {
-    sphere = require("scenes.sphere"),
-    triangle = require("scenes.triangle"),
-    color_pattern = require("scenes.color_pattern")
-}
-
 -- RayTracer Class Definition
 RayTracer = {}
 RayTracer.__index = RayTracer
@@ -21,7 +14,7 @@ function RayTracer.new(width, height)
     self.device = nil
     self.scene = nil
     self.current_scene_type = "color_pattern" -- Default scene
-    self.current_scene_module = scenes.color_pattern -- Default scene module
+    self.current_scene_module = nil -- モジュールはreset_sceneで読み込まれる
     return self
 end
 
@@ -67,8 +60,14 @@ function RayTracer:init()
     self.device = EmbreeDevice.new()
 end
 
-function RayTracer:reset_scene(scene_type)
+function RayTracer:reset_scene(scene_type, force_reload)
     print("Resetting scene to: " .. scene_type)
+    
+    -- クリーンアップコールバックの呼び出し
+    if self.current_scene_module and self.current_scene_module.cleanup then
+        print("Calling cleanup callback for current scene module")
+        self.current_scene_module.cleanup(self.scene)
+    end
     
     -- Explicitly release the old scene resources
     if self.scene then
@@ -84,13 +83,27 @@ function RayTracer:reset_scene(scene_type)
     
     self.current_scene_type = scene_type
     
-    -- シーンモジュールの取得と設定
-    self.current_scene_module = scenes[scene_type]
-    if self.current_scene_module then
+    -- シーンモジュールの動的読み込み(強制再読み込みオプション付き)
+    local scene_module_path = "scenes." .. scene_type
+    
+    -- 強制再読み込みが指定されている場合、package.loadedからモジュールを削除
+    if force_reload then
+        print("Force reloading module: " .. scene_module_path)
+        package.loaded[scene_module_path] = nil
+    end
+    
+    local success, scene_module = pcall(require, scene_module_path)
+    
+    if success and scene_module then
+        self.current_scene_module = scene_module
         self.current_scene_module.setup(self.scene)
     else
-        print("Unknown scene type, defaulting to sphere")
-        self.current_scene_module = scenes.sphere
+        print("Unknown scene type or failed to load: " .. scene_type .. ", defaulting to color_pattern")
+        -- デフォルトのcolor_patternも強制再読み込み
+        if force_reload then
+            package.loaded["scenes.color_pattern"] = nil
+        end
+        self.current_scene_module = require("scenes.color_pattern")
         self.current_scene_module.setup(self.scene)
     end
     
@@ -183,9 +196,9 @@ function RayTracer:on_ui()
         
         ImGui.Separator()
         
-        if ImGui.Button("Re-Render") then
-            print("Re-rendering requested")
-            self:render()
+        if ImGui.Button("Reload Scene") then
+            print("Reloading scene module and re-rendering")
+            self:reset_scene(self.current_scene_type, true) -- force_reload = true
         end
     end
     ImGui.End()

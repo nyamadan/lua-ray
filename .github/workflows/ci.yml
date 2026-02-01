@@ -99,8 +99,26 @@ jobs:
       - name: Build (Emscripten)
         run: pnpm run build:emscripten -j2
 
+      - name: Upload Emscripten artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: emscripten-build
+          path: |
+            build/emscripten-release/lua-ray.html
+            build/emscripten-release/lua-ray.js
+            build/emscripten-release/lua-ray.wasm
+            build/emscripten-release/lua-ray.data
+          if-no-files-found: error
+
       - name: Configure (Win32)
         run: pnpm run configure:win32
 
       - name: Build (Win32)
         run: pnpm run build:win32 -j2
+
+      - name: Upload Win32 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: win32-build
+          path: build/win32-release/lua-ray.exe
+          if-no-files-found: error
