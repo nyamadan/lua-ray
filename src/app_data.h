@@ -23,6 +23,10 @@ public:
     int get_width() const { return m_width; }
     int get_height() const { return m_height; }
 
+    void clear() {
+        std::fill(m_pixels.begin(), m_pixels.end(), 0xFF000000);
+    }
+
 private:
     int m_width;
     int m_height;

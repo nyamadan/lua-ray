@@ -16,6 +16,8 @@ function RayTracer.new(width, height)
     self.current_scene_type = "color_pattern" -- Default scene
     self.current_scene_module = nil -- モジュールはreset_sceneで読み込まれる
     self.workers = {} -- Array of ThreadWorker
+    self.render_coroutine = nil -- Coroutine for single-threaded rendering
+    self.use_multithreading = true -- マルチスレッド使用フラグ
     self.NUM_THREADS = 8 -- スレッド数
     return self
 end
@@ -64,6 +66,9 @@ end
 
 function RayTracer:reset_scene(scene_type, force_reload)
     print("Resetting scene to: " .. scene_type)
+    
+    -- Stop any existing coroutine
+    self.render_coroutine = nil
     
     -- クリーンアップコールバックの呼び出し
     if self.current_scene_module and self.current_scene_module.cleanup then
@@ -126,6 +131,9 @@ end
 
 -- スレッドレンダリングを開始
 function RayTracer:start_render_threads()
+    -- Stop any existing coroutine
+    self.render_coroutine = nil
+    
     -- 既存のワーカーをクリア (GCでjoinされるが、明示的に待つほうが安全かもしれない)
     self.workers = {}
     
@@ -147,9 +155,34 @@ function RayTracer:start_render_threads()
     end
 end
 
+-- シングルスレッドレンダリング用コルーチン作成
+function RayTracer:create_render_coroutine()
+    return coroutine.create(function()
+        print("Starting single-threaded render (Coroutine)...")
+        local startTime = os.clock()
+        local frameAllowance = 0.012 -- 12ms
+        
+        for y = 0, self.height - 1 do
+            for x = 0, self.width - 1 do
+                self.current_scene_module.shade(self.data, x, y)
+                
+                -- Check time every 100 pixels to avoid excessive os.clock calls
+                if x % 100 == 0 then
+                     if (os.clock() - startTime) >= frameAllowance then
+                        coroutine.yield()
+                        startTime = os.clock() -- Reset start time for next slice
+                     end
+                end
+            end
+        end
+        
+        print("Single-threaded render finished.")
+    end)
+end
 
 -- 毎フレーム呼ばれる更新処理
 function RayTracer:update()
+    -- Multi-threaded update
     if #self.workers > 0 then
         local all_done = true
         
@@ -163,16 +196,40 @@ function RayTracer:update()
         self:update_texture()
         
         if all_done then
-            print("Lua render finished.")
+            print("Lua render finished (Multi-threaded).")
             self.workers = {} -- 完了
             self:update_texture() -- 最後に一度更新
+        end
+    
+    -- Single-threaded coroutine update
+    elseif self.render_coroutine then
+        local status = coroutine.status(self.render_coroutine)
+        if status == "suspended" then
+            local success, err = coroutine.resume(self.render_coroutine)
+            if not success then
+                print("Coroutine error: " .. tostring(err))
+                self.render_coroutine = nil
+            end
+            self:update_texture()
+        elseif status == "dead" then
+            self.render_coroutine = nil
+            self:update_texture()
         end
     end
 end
 
 function RayTracer:render()
     print("Starting render...")
-    self:start_render_threads()
+    
+    -- Clear previous render data
+    self.data:clear()
+    self:update_texture()
+
+    if self.use_multithreading then
+        self:start_render_threads()
+    else
+        self.render_coroutine = self:create_render_coroutine()
+    end
 end
 
 function RayTracer:on_ui()
@@ -181,11 +238,29 @@ function RayTracer:on_ui()
         ImGui.Text(string.format("Resolution: %d x %d", self.width, self.height))
         
         ImGui.Separator()
+
+        local is_rendering = (#self.workers > 0) or (self.render_coroutine ~= nil)
+        ImGui.BeginDisabled(is_rendering)
+
+        -- Render Mode Selection
+        ImGui.Text("Render Mode:")
+        if ImGui.RadioButton("Multi-threaded", self.use_multithreading) then
+            if not self.use_multithreading then
+                self.use_multithreading = true
+                self:render()
+            end
+        end
+        ImGui.SameLine()
+        if ImGui.RadioButton("Single-threaded", not self.use_multithreading) then
+            if self.use_multithreading then
+                self.use_multithreading = false
+                self:render()
+            end
+        end
+
+        ImGui.Separator()
         
         ImGui.Text("Scene Selection:")
-        
-        local is_rendering = (#self.workers > 0)
-        ImGui.BeginDisabled(is_rendering)
         
         local changed = false
         local type = self.current_scene_type
@@ -219,10 +294,10 @@ function RayTracer:on_ui()
         
         ImGui.Separator()
         
-
-        
         if #self.workers > 0 then
             ImGui.Text(string.format("Status: Rendering... (%d threads)", #self.workers))
+        elseif self.render_coroutine then
+            ImGui.Text("Status: Rendering... (Single-threaded)")
         else
             ImGui.Text("Status: Idle")
         end

@@ -30,7 +30,8 @@ void bind_common_types(sol::state& lua) {
         sol::constructors<AppData(int, int)>(),
         "set_pixel", &AppData::set_pixel,
         "width", &AppData::get_width,
-        "height", &AppData::get_height
+        "height", &AppData::get_height,
+        "clear", &AppData::clear
     );
 }
 
