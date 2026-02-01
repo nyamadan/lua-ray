@@ -20,8 +20,8 @@ function RayTracer.new(width, height)
     self.texture = nil
     self.device = nil
     self.scene = nil
-    self.current_scene_type = "sphere" -- Default scene
-    self.current_scene_module = scenes.sphere -- Default scene module
+    self.current_scene_type = "color_pattern" -- Default scene
+    self.current_scene_module = scenes.color_pattern -- Default scene module
     return self
 end
 
@@ -103,6 +103,11 @@ function RayTracer:init_scene()
     self:reset_scene(self.current_scene_type)
 end
 
+function RayTracer:update_texture()
+    -- Update Texture from AppData
+    app.update_texture(self.texture, self.data)
+end
+
 function RayTracer:render()
     print("Rendering scene...")
 
@@ -141,10 +146,9 @@ function RayTracer:render()
             self.current_scene_module.shade(hit, x, flip_y, self.data, dx, dy, dz, nx, ny, nz, lightDirX, lightDirY, lightDirZ)
         end
     end
-    
-    -- Update Texture from AppData
-    app.update_texture(self.texture, self.data)
-    
+
+    self:update_texture()
+
     print("Lua render finished.")
 end
 
@@ -159,9 +163,9 @@ function RayTracer:on_ui()
         local changed = false
         local type = self.current_scene_type
         
-        if ImGui.RadioButton("Sphere", type == "sphere") then
-            if type ~= "sphere" then
-                self:reset_scene("sphere")
+        if ImGui.RadioButton("Color Pattern", type == "color_pattern") then
+            if type ~= "color_pattern" then
+                self:reset_scene("color_pattern")
             end
         end
         ImGui.SameLine()
@@ -171,9 +175,9 @@ function RayTracer:on_ui()
             end
         end
         ImGui.SameLine()
-        if ImGui.RadioButton("Color Pattern", type == "color_pattern") then
-            if type ~= "color_pattern" then
-                self:reset_scene("color_pattern")
+        if ImGui.RadioButton("Sphere", type == "sphere") then
+            if type ~= "sphere" then
+                self:reset_scene("sphere")
             end
         end
         
