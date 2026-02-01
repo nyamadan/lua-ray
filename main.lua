@@ -13,6 +13,7 @@ function RayTracer.new(width, height)
     self.texture = nil
     self.device = nil
     self.scene = nil
+    self.camera = nil -- カメラオブジェクト
     self.current_scene_type = "color_pattern" -- Default scene
     self.current_scene_module = nil -- モジュールはreset_sceneで読み込まれる
     return self
@@ -107,6 +108,11 @@ function RayTracer:reset_scene(scene_type, force_reload)
         self.current_scene_module.setup(self.scene)
     end
     
+    -- カメラの初期化
+    local aspectRatio = self.width / self.height
+    self.camera = self.current_scene_module.create_camera(aspectRatio)
+    print("Camera type: " .. self.camera.camera_type)
+    
     self.scene:commit()
     -- Re-render immediately after switch
     self:render()
@@ -124,7 +130,6 @@ end
 function RayTracer:render()
     print("Rendering scene...")
 
-    local aspectRatio = self.width / self.height
     local lightDirX, lightDirY, lightDirZ = 0.707, 0.0, 0.707
     -- Normalize light
     local len = math.sqrt(lightDirX*lightDirX + lightDirY*lightDirY + lightDirZ*lightDirZ)
@@ -138,25 +143,18 @@ function RayTracer:render()
         local flip_y = self.height - 1 - y
         
         for x = 0, self.width - 1 do
-            -- Normalize pixel coordinates [-1, 1]
+            -- 正規化されたスクリーン座標 [-1, 1]
             local u = (2.0 * x - self.width) / self.width
             local v = (2.0 * y - self.height) / self.height
-            
-            u = u * aspectRatio
 
-            -- Ray setup (Camera at 0, 0, 1 looking at -z)
-            local ox, oy, oz = 0.0, 0.0, 1.0
-            local dx, dy, dz = u, v, -1.0
-
-            -- Normalize direction
-            local len = math.sqrt(dx*dx + dy*dy + dz*dz)
-            dx, dy, dz = dx/len, dy/len, dz/len
+            -- カメラからレイを生成
+            local ox, oy, oz, dx, dy, dz = self.camera:generate_ray(u, v)
 
             -- Intersect
             local hit, t, nx, ny, nz = self.scene:intersect(ox, oy, oz, dx, dy, dz)
 
             -- シーンモジュールのshade関数を使用してピクセルを描画
-            self.current_scene_module.shade(hit, x, flip_y, self.data, dx, dy, dz, nx, ny, nz, lightDirX, lightDirY, lightDirZ)
+            self.current_scene_module.shade(hit, x, flip_y, self.data, u, v, ox, oy, oz, dx, dy, dz, nx, ny, nz, lightDirX, lightDirY, lightDirZ)
         end
     end
 

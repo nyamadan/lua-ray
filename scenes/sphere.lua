@@ -3,6 +3,18 @@
 
 local M = {}
 
+-- カメラの作成: 透視投影
+function M.create_camera(aspect_ratio)
+    local Camera = require("camera")
+    return Camera.new("perspective", {
+        position = {0, 0, 2},
+        look_at = {0, 0, 0},
+        up = {0, 1, 0},
+        aspect_ratio = aspect_ratio,
+        fov = 60.0
+    })
+end
+
 -- シーンのセットアップ: 球体を追加
 function M.setup(scene)
     print("Creating Sphere Scene...")
@@ -10,8 +22,8 @@ function M.setup(scene)
     scene:add_sphere(0.0, 0.0, 0.0, 0.5)
 end
 
--- ピクセルの色を計算（ディフューズシェーディング）
-function M.shade(hit, x, flip_y, data, dx, dy, dz, nx, ny, nz, lightDirX, lightDirY, lightDirZ)
+-- ピクセルの色を計算(ディフューズシェーディング)
+function M.shade(hit, x, flip_y, data, u, v, ox, oy, oz, dx, dy, dz, nx, ny, nz, lightDirX, lightDirY, lightDirZ)
     if hit then
         -- ディフューズシェーディング計算
         local diffuse = nx * lightDirX + ny * lightDirY + nz * lightDirZ
