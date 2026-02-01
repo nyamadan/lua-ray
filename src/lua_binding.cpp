@@ -8,7 +8,7 @@
 
 
 void bind_lua(sol::state& lua, AppContext& ctx) {
-    lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::string, sol::lib::table);
+    lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::string, sol::lib::table, sol::lib::coroutine, sol::lib::os);
     bind_imgui(lua);
 
     // Create 'app' namespace

@@ -15,6 +15,7 @@ function RayTracer.new(width, height)
     self.scene = nil
     self.current_scene_type = "color_pattern" -- Default scene
     self.current_scene_module = nil -- モジュールはreset_sceneで読み込まれる
+    self.render_coroutine = nil -- レンダリング用コルーチン
     return self
 end
 
@@ -122,20 +123,56 @@ function RayTracer:update_texture()
     app.update_texture(self.texture, self.data)
 end
 
-function RayTracer:render()
-    print("Rendering scene...")
+-- レンダリングコルーチンを作成
+function RayTracer:create_render_coroutine()
+    return coroutine.create(function()
+        local start_time = os.clock()
+        local time_limit = 0.01  -- 10ms
+        
+        for y = 0, self.height - 1 do
+            for x = 0, self.width - 1 do
+                -- シーンモジュールのshade関数を使用してピクセルを描画
+                self.current_scene_module.shade(self.data, x, y)
+                
+                -- 時間チェック
+                local elapsed = os.clock() - start_time
+                if elapsed >= time_limit then
+                    coroutine.yield()  -- 次のフレームへ
+                    start_time = os.clock()  -- 時間をリセット
+                end
+            end
+        end
+        
+        -- レンダリング完了
+        return true
+    end)
+end
 
-    -- Render to AppData
-    for y = 0, self.height - 1 do
-        for x = 0, self.width - 1 do
-            -- シーンモジュールのshade関数を使用してピクセルを描画
-            self.current_scene_module.shade(self.data, x, y)
+-- 毎フレーム呼ばれる更新処理
+function RayTracer:update()
+    if self.render_coroutine then
+        local status = coroutine.status(self.render_coroutine)
+        if status == "suspended" then
+            local ok, result = coroutine.resume(self.render_coroutine)
+            if not ok then
+                print("Coroutine error: " .. tostring(result))
+                self.render_coroutine = nil
+            elseif result == true or coroutine.status(self.render_coroutine) == "dead" then
+                -- レンダリング完了
+                print("Lua render finished.")
+                self:update_texture()
+                self.render_coroutine = nil
+            else
+                -- レンダリング中、テクスチャを更新
+                self:update_texture()
+            end
         end
     end
+end
 
-    self:update_texture()
-
-    print("Lua render finished.")
+function RayTracer:render()
+    print("Starting render...")
+    self.render_coroutine = self:create_render_coroutine()
 end
 
 function RayTracer:on_ui()
@@ -196,5 +233,6 @@ raytracer:init_scene()
 
 -- Set global frame callback
 function app.on_frame()
+    raytracer:update()
     raytracer:on_ui()
 end
