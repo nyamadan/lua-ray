@@ -14,23 +14,25 @@ local lightDirX, lightDirY, lightDirZ = 0.707, 0.0, 0.707
 local len = math.sqrt(lightDirX*lightDirX + lightDirY*lightDirY + lightDirZ*lightDirZ)
 lightDirX, lightDirY, lightDirZ = lightDirX/len, lightDirY/len, lightDirZ/len
 
--- シーンのセットアップ: 三角形を追加し、カメラを作成
-function M.setup(embree_scene, app_data, is_worker)
-    print("Creating Triangle Scene...")
+-- シーンのセットアップ: 三角形を追加
+function M.setup(embree_scene, app_data)
+    print("Setup Triangle Scene (Geometry)...")
+    -- 三角形の頂点: (-0.5, -0.5, 0), (0.5, -0.5, 0), (0.0, 0.5, 0)
+    embree_scene:add_triangle(
+        -0.5, -0.5, 0.0,
+        0.5, -0.5, 0.0,
+        0.0,  0.5, 0.0
+    )
+end
+
+-- シーンの開始: カメラとローカル変数の初期化
+function M.start(embree_scene, app_data)
+    print("Start Triangle Scene (Camera & Locals)...")
     scene = embree_scene
     width = app_data:width()
     height = app_data:height()
     local aspect_ratio = width / height
-    
-    -- 三角形の頂点: (-0.5, -0.5, 0), (0.5, -0.5, 0), (0.0, 0.5, 0)
-    if not is_worker then
-        scene:add_triangle(
-            -0.5, -0.5, 0.0,
-            0.5, -0.5, 0.0,
-            0.0,  0.5, 0.0
-        )
-    end
-    
+
     -- カメラの作成: 透視投影
     local Camera = require("lib.camera")
     camera = Camera.new("perspective", {

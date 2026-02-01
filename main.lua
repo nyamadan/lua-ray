@@ -113,7 +113,17 @@ function RayTracer:reset_scene(scene_type, force_reload)
     end
     
     -- シーンのセットアップとカメラの初期化
-    self.current_scene_module.setup(self.scene, self.data)
+    -- setup: Geometry creation (Main thread only, once)
+    if self.current_scene_module.setup then
+        self.current_scene_module.setup(self.scene, self.data)
+    end
+
+    -- start: Camera and local state initialization (Every time scene is reset or thread starts)
+    if self.current_scene_module.start then
+        self.current_scene_module.start(self.scene, self.data)
+    else
+        print("Warning: Scene module " .. self.current_scene_type .. " missing start function")
+    end
     
     self.scene:commit()
     -- Re-render immediately after switch

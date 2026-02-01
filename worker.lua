@@ -8,10 +8,12 @@ local scene_module = require("scenes." .. _scene_type)
 -- Initialize the scene module for this worker
 -- We pass true as the third argument to indicate this is a worker thread
 -- effectively skipping geometry creation but initializing camera and locals.
-if scene_module.setup then
-    scene_module.setup(_scene, _app_data, true)
+-- Initialize the scene module for this worker
+-- Worker threads only need to call start() to initialize camera and locals.
+if scene_module.start then
+    scene_module.start(_scene, _app_data)
 else
-    error("Scene module " .. _scene_type .. " does not have a setup function")
+    error("Scene module " .. _scene_type .. " does not have a start function")
 end
 
 -- Render loop
