@@ -17,7 +17,7 @@ function M.setup(embree_scene, app_data)
     -- オブジェクトなし、背景パターンのみ
     
     -- カメラの作成: 並行投影
-    local Camera = require("camera")
+    local Camera = require("lib.camera")
     camera = Camera.new("orthographic", {
         position = {0, 0, 1},
         look_at = {0, 0, 0},

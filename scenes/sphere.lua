@@ -26,7 +26,7 @@ function M.setup(embree_scene, app_data)
     scene:add_sphere(0.0, 0.0, 0.0, 0.5)
     
     -- カメラの作成: 透視投影
-    local Camera = require("camera")
+    local Camera = require("lib.camera")
     camera = Camera.new("perspective", {
         position = {0, 0, 2},
         look_at = {0, 0, 0},
