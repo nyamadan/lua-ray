@@ -9,7 +9,7 @@ local width = 0
 local height = 0
 
 -- シーンのセットアップ: オブジェクトなし(背景パターンのみ)
-function M.setup(embree_scene, app_data)
+function M.setup(embree_scene, app_data, is_worker)
     print("Creating Color Pattern Scene...")
     width = app_data:width()
     height = app_data:height()
