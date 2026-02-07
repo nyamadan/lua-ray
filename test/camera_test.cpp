@@ -15,13 +15,13 @@ protected:
 };
 
 TEST_F(CameraTest, CanRequireCamera) {
-    auto result = lua.safe_script("return require('lib.camera')");
+    auto result = lua.safe_script("return require('lib.Camera')");
     ASSERT_TRUE(result.valid());
 }
 
 TEST_F(CameraTest, CreatePerspectiveCamera) {
     auto script = R"(
-        local Camera = require('lib.camera')
+        local Camera = require('lib.Camera')
         local c = Camera.new('perspective', {
             position = {0, 0, 5},
             look_at = {0, 0, 0},
@@ -45,7 +45,7 @@ TEST_F(CameraTest, ComputeBasis_Aligned) {
     // Case 1: Camera at (0,0,1) looking at (0,0,0) with up (0,1,0)
     // Forward = (0,0,-1), Right = (1,0,0), Up = (0,1,0)
     auto script = R"(
-        local Camera = require('lib.camera')
+        local Camera = require('lib.Camera')
         local c = Camera.new('perspective', {
             position = {0, 0, 1},
             look_at = {0, 0, 0},
@@ -76,7 +76,7 @@ TEST_F(CameraTest, ComputeBasis_Aligned) {
 TEST_F(CameraTest, GenerateRay_Center) {
     // Center of screen (u=0, v=0) should generate ray along Forward vector
     auto script = R"(
-        local Camera = require('lib.camera')
+        local Camera = require('lib.Camera')
         local c = Camera.new('perspective', {
             position = {0, 0, 1},
             look_at = {0, 0, 0},
@@ -115,7 +115,7 @@ TEST_F(CameraTest, GenerateRay_TopRight) {
     // Normalized: (1/sqrt(3), 1/sqrt(3), -1/sqrt(3))
     
     auto script = R"(
-        local Camera = require('lib.camera')
+        local Camera = require('lib.Camera')
         local c = Camera.new('perspective', {
             position = {0, 0, 1},
             look_at = {0, 0, 0},
@@ -138,7 +138,7 @@ TEST_F(CameraTest, GenerateRay_TopRight) {
 
 TEST_F(CameraTest, CreateOrthographicCamera) {
     auto script = R"(
-        local Camera = require('lib.camera')
+        local Camera = require('lib.Camera')
         local c = Camera.new('orthographic', {
             position = {0, 0, 10},
             look_at = {0, 0, 0},
@@ -168,7 +168,7 @@ TEST_F(CameraTest, GenerateOrthographicRay) {
     // Direction = Forward = (0, 0, -1)
     
     auto script = R"(
-        local Camera = require('lib.camera')
+        local Camera = require('lib.Camera')
         local c = Camera.new('orthographic', {
             position = {0, 0, 10},
             look_at = {0, 0, 0},
