@@ -283,16 +283,22 @@ function RayTracer:on_ui()
                 self:reset_scene("color_pattern")
             end
         end
-        ImGui.SameLine()
+        
         if ImGui.RadioButton("Triangle", type == "triangle") then
             if type ~= "triangle" then
                 self:reset_scene("triangle")
             end
         end
-        ImGui.SameLine()
+        
         if ImGui.RadioButton("Sphere", type == "sphere") then
             if type ~= "sphere" then
                 self:reset_scene("sphere")
+            end
+        end
+        
+        if ImGui.RadioButton("MatSphere", type == "materialed_sphere") then
+            if type ~= "materialed_sphere" then
+                self:reset_scene("materialed_sphere")
             end
         end
         

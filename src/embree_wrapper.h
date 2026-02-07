@@ -42,13 +42,13 @@ public:
 
     // Allow moving (if needed) - simplified for now
 
-    void add_sphere(float cx, float cy, float cz, float r);
-    void add_triangle(float x1, float y1, float z1, float x2, float y2, float z2, float x3, float y3, float z3);
+    unsigned int add_sphere(float cx, float cy, float cz, float r);
+    unsigned int add_triangle(float x1, float y1, float z1, float x2, float y2, float z2, float x3, float y3, float z3);
     void commit();
     void release();
     
-    // Return hit, t, nx, ny, nz
-    std::tuple<bool, float, float, float, float> intersect(float ox, float oy, float oz, float dx, float dy, float dz);
+    // Return hit, t, nx, ny, nz, geomID, primID
+    std::tuple<bool, float, float, float, float, unsigned int, unsigned int> intersect(float ox, float oy, float oz, float dx, float dy, float dz);
 
 private:
     RTCDevice device; // We might need to store device if we create geometries later, but add_sphere uses it.
