@@ -251,7 +251,7 @@ if(NOT EMSCRIPTEN)
     FetchContent_MakeAvailable(googletest)
 
     # Unit Tests
-    add_executable(lua-ray-tests test/lua_binding_test.cpp test/lbuffer_test.cpp test/sol2_test.cpp test/imgui_test.cpp test/app_data_test.cpp src/lua_binding.cpp src/imgui_lua_binding.cpp src/embree_wrapper.cpp src/thread_worker.cpp)
+    add_executable(lua-ray-tests test/lua_binding_test.cpp test/lbuffer_test.cpp test/sol2_test.cpp test/imgui_test.cpp test/app_data_test.cpp test/ray_tracer_test.cpp src/lua_binding.cpp src/imgui_lua_binding.cpp src/embree_wrapper.cpp src/thread_worker.cpp)
     target_include_directories(lua-ray-tests PRIVATE src)
     # SDL3 headers are required by context.h, so link the static SDL3 library
     target_link_libraries(lua-ray-tests PRIVATE gtest_main lua embree lbuffer sol2 imgui SDL3::SDL3-static)
