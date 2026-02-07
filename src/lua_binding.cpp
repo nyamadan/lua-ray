@@ -29,6 +29,8 @@ void bind_common_types(sol::state& lua) {
     lua.new_usertype<AppData>("AppData",
         sol::constructors<AppData(int, int)>(),
         "set_pixel", &AppData::set_pixel,
+        "get_pixel", &AppData::get_pixel,
+        "swap", &AppData::swap,
         "width", &AppData::get_width,
         "height", &AppData::get_height,
         "clear", &AppData::clear
@@ -158,6 +160,13 @@ void bind_lua(sol::state& lua, AppContext& ctx) {
         if (!texture) return;
         SDL_Texture* tex = static_cast<SDL_Texture*>(texture);
         SDL_UpdateTexture(tex, NULL, data.get_data(), data.get_width() * sizeof(uint32_t));
+    });
+
+    // Update texture from AppData's back buffer (for in-progress rendering)
+    app.set_function("update_texture_from_back", [](void* texture, AppData& data) {
+        if (!texture) return;
+        SDL_Texture* tex = static_cast<SDL_Texture*>(texture);
+        SDL_UpdateTexture(tex, NULL, data.get_back_data(), data.get_width() * sizeof(uint32_t));
     });
 
     app.set_function("get_ticks", []() -> uint32_t {
