@@ -112,3 +112,18 @@ TEST_F(LuaBindingTest, GetTicks) {
     )");
     ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
 }
+
+TEST_F(LuaBindingTest, MeasureDuration) {
+    auto result = lua.safe_script(R"(
+        local start_time = app.get_ticks()
+        assert(type(start_time) == "number")
+        
+        -- Simulate a small duration
+        local end_time = app.get_ticks()
+        assert(end_time >= start_time)
+        
+        local duration = end_time - start_time
+        assert(duration >= 0)
+    )");
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+}

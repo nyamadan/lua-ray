@@ -19,6 +19,7 @@ function RayTracer.new(width, height)
     self.render_coroutine = nil -- Coroutine for single-threaded rendering
     self.use_multithreading = false -- マルチスレッド使用フラグ
     self.NUM_THREADS = 8 -- スレッド数
+    self.render_start_time = 0 -- Rendering start time
     return self
 end
 
@@ -169,24 +170,24 @@ end
 function RayTracer:create_render_coroutine()
     return coroutine.create(function()
         print("Starting single-threaded render (Coroutine)...")
-        local startTime = os.clock()
-        local frameAllowance = 0.012 -- 12ms
+        local startTime = app.get_ticks()
+        local frameAllowance = 12 -- 12ms
         
         for y = 0, self.height - 1 do
             for x = 0, self.width - 1 do
                 self.current_scene_module.shade(self.data, x, y)
                 
-                -- Check time every 100 pixels to avoid excessive os.clock calls
+                -- Check time every 100 pixels to avoid excessive app.get_ticks calls
                 if x % 100 == 0 then
-                     if (os.clock() - startTime) >= frameAllowance then
+                     if (app.get_ticks() - startTime) >= frameAllowance then
                         coroutine.yield()
-                        startTime = os.clock() -- Reset start time for next slice
+                        startTime = app.get_ticks() -- Reset start time for next slice
                      end
                 end
             end
         end
         
-        print("Single-threaded render finished.")
+        print(string.format("Single-threaded render finished internally. (Total check in update)"))
     end)
 end
 
@@ -206,7 +207,8 @@ function RayTracer:update()
         self:update_texture()
         
         if all_done then
-            print("Lua render finished (Multi-threaded).")
+            local end_time = app.get_ticks()
+            print(string.format("Lua render finished (Multi-threaded). Time: %d ms", end_time - self.render_start_time))
             self.workers = {} -- 完了
             self:update_texture() -- 最後に一度更新
         end
@@ -222,6 +224,8 @@ function RayTracer:update()
             end
             self:update_texture()
         elseif status == "dead" then
+            local end_time = app.get_ticks()
+            print(string.format("Single-threaded render finished. Time: %d ms", end_time - self.render_start_time))
             self.render_coroutine = nil
             self:update_texture()
         end
@@ -230,6 +234,7 @@ end
 
 function RayTracer:render()
     print("Starting render...")
+    self.render_start_time = app.get_ticks()
     
     -- Clear previous render data
     self.data:clear()
