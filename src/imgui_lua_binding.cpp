@@ -17,6 +17,12 @@ void bind_imgui(sol::state& lua) {
 
     imgui.set_function("End", &ImGui::End);
 
+    imgui.set_function("BeginDisabled", sol::overload(
+        [](bool disabled) { ImGui::BeginDisabled(disabled); },
+        []() { ImGui::BeginDisabled(true); }
+    ));
+    imgui.set_function("EndDisabled", &ImGui::EndDisabled);
+
     imgui.set_function("Text", [](const char* text) { 
         ImGui::Text("%s", text); 
     });

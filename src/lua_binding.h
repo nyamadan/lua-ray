@@ -14,5 +14,7 @@ struct AppContext {
 
 // Bind Lua functions.
 void bind_lua(sol::state& lua, AppContext& ctx);
+// Bind Lua functions for worker threads.
+void bind_worker_lua(sol::state& lua);
 // Run script and return the script's return value (if any) as a sol::object.
 sol::object run_script(sol::state& lua, int argc, char* argv[]);

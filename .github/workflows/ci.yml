@@ -102,10 +102,11 @@ jobs:
       - name: Prepare Emscripten artifacts
         run: |
           mkdir -p artifacts/emscripten
-          cp build/emscripten-release/lua-ray.html artifacts/emscripten
-          cp build/emscripten-release/lua-ray.js artifacts/emscripten
-          cp build/emscripten-release/lua-ray.wasm artifacts/emscripten
-          cp build/emscripten-release/lua-ray.data artifacts/emscripten
+          cp server-cross-origin.py artifacts/emscripten/
+          cp build/emscripten-release/lua-ray.html artifacts/emscripten/
+          cp build/emscripten-release/lua-ray.js artifacts/emscripten/
+          cp build/emscripten-release/lua-ray.wasm artifacts/emscripten/
+          cp build/emscripten-release/lua-ray.data artifacts/emscripten/
 
       - name: Upload Emscripten artifacts
         uses: actions/upload-artifact@v4
@@ -125,6 +126,7 @@ jobs:
           mkdir -p artifacts/win32
           cp build/win32-release/lua-ray.exe artifacts/win32/
           cp main.lua artifacts/win32/
+          cp worker.lua artifacts/win32/
           cp -r lib artifacts/win32/
           cp -r scenes artifacts/win32/
 

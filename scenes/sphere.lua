@@ -14,19 +14,23 @@ local lightDirX, lightDirY, lightDirZ = 0.707, 0.0, 0.707
 local len = math.sqrt(lightDirX*lightDirX + lightDirY*lightDirY + lightDirZ*lightDirZ)
 lightDirX, lightDirY, lightDirZ = lightDirX/len, lightDirY/len, lightDirZ/len
 
--- シーンのセットアップ: 球体を追加し、カメラを作成
+-- シーンのセットアップ: 球体を追加
 function M.setup(embree_scene, app_data)
-    print("Creating Sphere Scene...")
+    print("Setup Sphere Scene (Geometry)...")
+    -- 原点に半径0.5の球体を配置
+    embree_scene:add_sphere(0.0, 0.0, 0.0, 0.5)
+end
+
+-- シーンの開始: カメラとローカル変数の初期化
+function M.start(embree_scene, app_data)
+    print("Start Sphere Scene (Camera & Locals)...")
     scene = embree_scene
     width = app_data:width()
     height = app_data:height()
     local aspect_ratio = width / height
     
-    -- 原点に半径0.5の球体を配置
-    scene:add_sphere(0.0, 0.0, 0.0, 0.5)
-    
     -- カメラの作成: 透視投影
-    local Camera = require("lib.camera")
+    local Camera = require("lib.Camera")
     camera = Camera.new("perspective", {
         position = {0, 0, 2},
         look_at = {0, 0, 0},

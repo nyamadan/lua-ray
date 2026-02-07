@@ -5,7 +5,42 @@
 #include <iostream>
 #include "app.h"
 #include "app_data.h"
+#include "thread_worker.h"
 
+// Helper to bind common types (AppData, Embree) to any state
+void bind_common_types(sol::state& lua) {
+    // Bind EmbreeDevice
+    lua.new_usertype<EmbreeDevice>("EmbreeDevice",
+        sol::constructors<EmbreeDevice()>(),
+        "create_scene", [](EmbreeDevice& self) { return std::make_unique<EmbreeScene>(self); },
+        "release", &EmbreeDevice::release
+    );
+
+    // Bind EmbreeScene
+    lua.new_usertype<EmbreeScene>("EmbreeScene",
+        "add_sphere", &EmbreeScene::add_sphere,
+        "add_triangle", &EmbreeScene::add_triangle,
+        "commit", &EmbreeScene::commit,
+        "intersect", &EmbreeScene::intersect,
+        "release", &EmbreeScene::release
+    );
+
+    // Bind AppData
+    lua.new_usertype<AppData>("AppData",
+        sol::constructors<AppData(int, int)>(),
+        "set_pixel", &AppData::set_pixel,
+        "width", &AppData::get_width,
+        "height", &AppData::get_height,
+        "clear", &AppData::clear
+    );
+}
+
+void bind_worker_lua(sol::state& lua) {
+    // Basic types
+    bind_common_types(lua);
+    
+    // We might want to bind other utilities (math etc were opened in thread_worker.cpp)
+}
 
 void bind_lua(sol::state& lua, AppContext& ctx) {
     lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::string, sol::lib::table, sol::lib::coroutine, sol::lib::os);
@@ -14,7 +49,6 @@ void bind_lua(sol::state& lua, AppContext& ctx) {
     // Create 'app' namespace
     auto app = lua.create_named_table("app");
 
-    // 1. Init Video
     // 1. Init Video
     app.set_function("init_video", [&]() -> bool {
         if (SDL_Init(SDL_INIT_VIDEO) == false) {
@@ -74,7 +108,7 @@ void bind_lua(sol::state& lua, AppContext& ctx) {
         if (tex_obj.is<void*>()) ctx.texture = static_cast<SDL_Texture*>(tex_obj.as<void*>());
     });
 
-    // Provide a texture-based API. Preferred usage is to lock once, write many pixels, then unlock.
+    // Provide a texture-based API
     app.set_function("draw_pixel_texture", [](void* texture, int x, int y, int r, int g, int b) {
         if (!texture) return;
         SDL_Texture* tex = static_cast<SDL_Texture*>(texture);
@@ -90,7 +124,6 @@ void bind_lua(sol::state& lua, AppContext& ctx) {
         SDL_UnlockTexture(tex);
     });
 
-    // Lock/unlock API: lock returns (pixels, pitch) as two return values (pair).
     app.set_function("lock_texture", [](void* texture) -> std::pair<void*, int> {
         if (!texture) return std::pair<void*, int>{nullptr, 0};
         SDL_Texture* tex = static_cast<SDL_Texture*>(texture);
@@ -108,14 +141,11 @@ void bind_lua(sol::state& lua, AppContext& ctx) {
         SDL_UnlockTexture(tex);
     });
 
-    // Draw into a locked pixel buffer: draw_pixel_locked(pixels, pitch, x, y, r, g, b)
     app.set_function("draw_pixel_locked", [](void* pixels, int pitch, int x, int y, int r, int g, int b) {
         if (!pixels) return;
         uint32_t* pixel = (uint32_t*)((uint8_t*)pixels + y * pitch + x * sizeof(uint32_t));
         *pixel = (r) | (g << 8) | (b << 16) | (255 << 24);
     });
-
-
 
     app.set_function("destroy_texture", [](void* texture) {
         if (!texture) return;
@@ -123,35 +153,31 @@ void bind_lua(sol::state& lua, AppContext& ctx) {
         SDL_DestroyTexture(tex);
     });
 
-    // Bind EmbreeDevice
-    lua.new_usertype<EmbreeDevice>("EmbreeDevice",
-        sol::constructors<EmbreeDevice()>(),
-        "create_scene", [](EmbreeDevice& self) { return std::make_unique<EmbreeScene>(self); },
-        "release", &EmbreeDevice::release
-    );
-
-    // Bind EmbreeScene
-    lua.new_usertype<EmbreeScene>("EmbreeScene",
-        "add_sphere", &EmbreeScene::add_sphere,
-        "add_triangle", &EmbreeScene::add_triangle,
-        "commit", &EmbreeScene::commit,
-        "intersect", &EmbreeScene::intersect,
-        "release", &EmbreeScene::release
-    );
-    // Bind AppData
-    lua.new_usertype<AppData>("AppData",
-        sol::constructors<AppData(int, int)>(),
-        "set_pixel", &AppData::set_pixel,
-        "width", &AppData::get_width,
-        "height", &AppData::get_height
-    );
-
     // Update texture from AppData
     app.set_function("update_texture", [](void* texture, AppData& data) {
         if (!texture) return;
         SDL_Texture* tex = static_cast<SDL_Texture*>(texture);
         SDL_UpdateTexture(tex, NULL, data.get_data(), data.get_width() * sizeof(uint32_t));
     });
+
+    app.set_function("get_ticks", []() -> uint32_t {
+        return SDL_GetTicks();
+    });
+    
+    // Bind Common Types (Embree, AppData)
+    bind_common_types(lua);
+    
+    // Bind ThreadWorker
+    lua.new_usertype<ThreadWorker>("ThreadWorker",
+        sol::constructors<ThreadWorker(AppData*, EmbreeScene*, ThreadWorker::Bounds, int)>(),
+        "create", [](AppData* data, EmbreeScene* scene, int x, int y, int w, int h, int id) {
+            return std::make_unique<ThreadWorker>(data, scene, ThreadWorker::Bounds{x, y, w, h}, id);
+        },
+        "start", &ThreadWorker::start,
+        "join", &ThreadWorker::join,
+        "is_done", &ThreadWorker::is_done,
+        "get_progress", &ThreadWorker::get_progress
+    );
 }
 
 

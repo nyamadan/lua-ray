@@ -10,14 +10,19 @@ local height = 0
 
 -- シーンのセットアップ: オブジェクトなし(背景パターンのみ)
 function M.setup(embree_scene, app_data)
-    print("Creating Color Pattern Scene...")
+    print("Setup Color Pattern Scene (Geometry - None)...")
+    -- オブジェクトなし、背景パターンのみ
+end
+
+-- シーンの開始: カメラとローカル変数の初期化
+function M.start(embree_scene, app_data)
+    print("Start Color Pattern Scene (Camera & Locals)...")
     width = app_data:width()
     height = app_data:height()
     local aspect_ratio = width / height
-    -- オブジェクトなし、背景パターンのみ
     
     -- カメラの作成: 並行投影
-    local Camera = require("lib.camera")
+    local Camera = require("lib.Camera")
     camera = Camera.new("orthographic", {
         position = {0, 0, 1},
         look_at = {0, 0, 0},
