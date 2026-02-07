@@ -33,7 +33,10 @@ void bind_common_types(sol::state& lua) {
         "swap", &AppData::swap,
         "width", &AppData::get_width,
         "height", &AppData::get_height,
-        "clear", &AppData::clear
+        "clear", &AppData::clear,
+        "set_string", &AppData::set_string,
+        "get_string", &AppData::get_string,
+        "has_string", &AppData::has_string
     );
 }
 

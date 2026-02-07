@@ -3,6 +3,9 @@
 #include <cstdint>
 #include <algorithm>
 #include <tuple>
+#include <unordered_map>
+#include <string>
+#include <mutex>
 
 class AppData {
 public:
@@ -56,10 +59,34 @@ public:
         std::fill(m_back_buffer.begin(), m_back_buffer.end(), 0xFF000000);
     }
 
+    // 文字列ストレージ（排他制御付き）
+    void set_string(const std::string& key, const std::string& value) {
+        std::lock_guard<std::mutex> lock(m_string_mutex);
+        m_string_storage[key] = value;
+    }
+
+    std::string get_string(const std::string& key) {
+        std::lock_guard<std::mutex> lock(m_string_mutex);
+        auto it = m_string_storage.find(key);
+        if (it != m_string_storage.end()) {
+            return it->second;
+        }
+        return "";
+    }
+
+    bool has_string(const std::string& key) {
+        std::lock_guard<std::mutex> lock(m_string_mutex);
+        return m_string_storage.find(key) != m_string_storage.end();
+    }
+
 private:
     int m_width;
     int m_height;
     std::vector<uint32_t> m_front_buffer;
     std::vector<uint32_t> m_back_buffer;
+    
+    // 文字列ストレージ（スレッド間データ共有用）
+    std::unordered_map<std::string, std::string> m_string_storage;
+    mutable std::mutex m_string_mutex;
 };
 

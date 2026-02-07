@@ -148,3 +148,43 @@ TEST_F(AppDataTest, GetPixelOutOfBoundsReturnsZero) {
     EXPECT_EQ(b2, 0);
 }
 
+// 文字列ストレージ機能のテスト（TDD: テストを先に書く）
+TEST_F(AppDataTest, SetStringAndGetString) {
+    AppData data(10, 10);
+    
+    // 文字列を設定して取得
+    data.set_string("materials", R"({"red": [1, 0, 0]})");
+    
+    EXPECT_EQ(data.get_string("materials"), R"({"red": [1, 0, 0]})");
+}
+
+TEST_F(AppDataTest, GetStringReturnsEmptyForNonexistentKey) {
+    AppData data(10, 10);
+    
+    // 存在しないキーの読み取りは空文字列を返す
+    EXPECT_EQ(data.get_string("nonexistent"), "");
+}
+
+TEST_F(AppDataTest, HasStringReturnsTrueForExistingKey) {
+    AppData data(10, 10);
+    
+    // 最初は存在しない
+    EXPECT_FALSE(data.has_string("test_key"));
+    
+    // 設定後は存在する
+    data.set_string("test_key", "test_value");
+    EXPECT_TRUE(data.has_string("test_key"));
+}
+
+TEST_F(AppDataTest, OverwriteExistingString) {
+    AppData data(10, 10);
+    
+    // 文字列を設定
+    data.set_string("key", "value1");
+    EXPECT_EQ(data.get_string("key"), "value1");
+    
+    // 上書き
+    data.set_string("key", "value2");
+    EXPECT_EQ(data.get_string("key"), "value2");
+}
+
