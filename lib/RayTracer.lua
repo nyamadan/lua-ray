@@ -18,7 +18,7 @@ function RayTracer.new(width, height)
     self.render_coroutine = nil -- Coroutine for single-threaded rendering
     self.posteffect_coroutine = nil -- Coroutine for single-threaded PostEffect
     self.use_multithreading = false -- マルチスレッド使用フラグ
-    self.NUM_THREADS = 16 -- スレッド数
+    self.NUM_THREADS = 8 -- スレッド数
     self.render_start_time = 0 -- Rendering start time
     return self
 end
@@ -431,15 +431,15 @@ function RayTracer:on_ui()
             end
         end
         
-        if ImGui.RadioButton("RTWeekend", type == "raytracing_weekend") then
-            if type ~= "raytracing_weekend" then
-                self:reset_scene("raytracing_weekend")
-            end
-        end
-        
         if ImGui.RadioButton("MatTransfer", type == "material_transfer") then
             if type ~= "material_transfer" then
                 self:reset_scene("material_transfer")
+            end
+        end
+        
+        if ImGui.RadioButton("RTWeekend", type == "raytracing_weekend") then
+            if type ~= "raytracing_weekend" then
+                self:reset_scene("raytracing_weekend")
             end
         end
         
