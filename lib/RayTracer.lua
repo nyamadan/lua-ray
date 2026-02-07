@@ -431,6 +431,12 @@ function RayTracer:on_ui()
             end
         end
         
+        if ImGui.RadioButton("RTWeekend", type == "raytracing_weekend") then
+            if type ~= "raytracing_weekend" then
+                self:reset_scene("raytracing_weekend")
+            end
+        end
+        
         ImGui.Separator()
         
         if ImGui.Button("Reload Scene") then
