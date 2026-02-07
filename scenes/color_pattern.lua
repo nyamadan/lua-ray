@@ -22,7 +22,7 @@ function M.start(embree_scene, app_data)
     local aspect_ratio = width / height
     
     -- カメラの作成: 並行投影
-    local Camera = require("lib.camera")
+    local Camera = require("lib.Camera")
     camera = Camera.new("orthographic", {
         position = {0, 0, 1},
         look_at = {0, 0, 0},

@@ -30,11 +30,34 @@ function Camera.new(camera_type, params)
     -- 並行投影パラメータ
     self.ortho_height = params.ortho_height or 2.0
     
+    -- 最適化: タイプに応じてレイ生成関数を直接割り当て（条件分岐を削減）
+    if self.camera_type == "perspective" then
+        self.generate_ray = Camera.generate_perspective_ray
+    elseif self.camera_type == "orthographic" then
+        self.generate_ray = Camera.generate_orthographic_ray
+    else
+        error("Unknown camera type: " .. tostring(self.camera_type))
+    end
+    
     -- カメラ座標系を計算
     self:compute_camera_basis()
     
     return self
 end
+
+-- レイを生成 (フォールバック、またはオーバーライドされる前の定義)
+function Camera:generate_ray(u, v)
+    -- この関数はインスタンス生成時にオーバーライドされるため、
+    -- 通常は呼ばれませんが、メタテーブル経由で呼ばれた場合のフォールバックとして残します。
+    if self.camera_type == "perspective" then
+        return self:generate_perspective_ray(u, v)
+    elseif self.camera_type == "orthographic" then
+        return self:generate_orthographic_ray(u, v)
+    else
+        error("Unknown camera type: " .. self.camera_type)
+    end
+end
+
 
 -- カメラ座標系の基底ベクトルを計算
 function Camera:compute_camera_basis()
@@ -74,19 +97,6 @@ function Camera:compute_camera_basis()
     self.forward = {fx, fy, fz}
     self.right = {rx, ry, rz}
     self.camera_up = {ux, uy, uz}
-end
-
--- レイを生成
--- @param u, v: 正規化されたスクリーン座標 [-1, 1]
--- @return origin_x, origin_y, origin_z, direction_x, direction_y, direction_z
-function Camera:generate_ray(u, v)
-    if self.camera_type == "perspective" then
-        return self:generate_perspective_ray(u, v)
-    elseif self.camera_type == "orthographic" then
-        return self:generate_orthographic_ray(u, v)
-    else
-        error("Unknown camera type: " .. self.camera_type)
-    end
 end
 
 -- 透視投影レイの生成
