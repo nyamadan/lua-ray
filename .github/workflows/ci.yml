@@ -102,6 +102,7 @@ jobs:
       - name: Prepare Emscripten artifacts
         run: |
           mkdir -p artifacts/emscripten
+          cp server-cross-origin.py artifacts/emscripten/
           cp build/emscripten-release/lua-ray.html artifacts/emscripten/
           cp build/emscripten-release/lua-ray.js artifacts/emscripten/
           cp build/emscripten-release/lua-ray.wasm artifacts/emscripten/
