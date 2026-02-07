@@ -221,6 +221,7 @@ if(EMSCRIPTEN)
         "-msse2"
         # Bundle main.lua and scenes
         "SHELL:--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/main.lua@/main.lua"
+        "SHELL:--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/worker.lua@/worker.lua"
         "SHELL:--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/posteffect_worker.lua@/posteffect_worker.lua"
         "SHELL:--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/lib@/lib"
         "SHELL:--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/scenes@/scenes"
