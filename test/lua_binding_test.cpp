@@ -34,15 +34,19 @@ TEST_F(LuaBindingTest, EmbreeSceneOperations) {
         local device = EmbreeDevice.new()
         local scene = device:create_scene()
         
-        -- Add sphere should not crash
-        scene:add_sphere(0, 0, 0, 1.0)
+        -- Add sphere should return geomID
+        local geom_id = scene:add_sphere(0, 0, 0, 1.0)
+        assert(type(geom_id) == "number")
+        assert(geom_id == 0)
         
         scene:commit()
         
         -- Intersect
-        local hit, t, nx, ny, nz = scene:intersect(0, 0, 5, 0, 0, -1)
+        local hit, t, nx, ny, nz, g_id, p_id = scene:intersect(0, 0, 5, 0, 0, -1)
         assert(hit == true)
         assert(t < 5)
+        assert(g_id == geom_id)
+        assert(p_id == 0)
     )");
     ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
 }
@@ -52,15 +56,16 @@ TEST_F(LuaBindingTest, AddTriangle) {
         local device = EmbreeDevice.new()
         local scene = device:create_scene()
         
-        -- Add triangle should not crash
-        scene:add_triangle(0, 0, 0, 1, 0, 0, 0, 1, 0)
+        -- Add triangle should return geomID
+        local geom_id = scene:add_triangle(0, 0, 0, 1, 0, 0, 0, 1, 0)
+        assert(type(geom_id) == "number")
         
         scene:commit()
         
         -- Intersect triangle
         -- Triangle is (0,0,0)-(1,0,0)-(0,1,0) (Z=0 plane)
         -- Ray from (0.2, 0.2, 1) direction (0, 0, -1) should hit
-        local hit, t, nx, ny, nz = scene:intersect(0.2, 0.2, 1, 0, 0, -1)
+        local hit, t, nx, ny, nz, g_id, p_id = scene:intersect(0.2, 0.2, 1, 0, 0, -1)
         assert(hit == true)
         assert(math.abs(t - 1.0) < 0.001)
         -- Normal should be (0, 0, 1) or (0, 0, -1) depending on winding
@@ -70,6 +75,7 @@ TEST_F(LuaBindingTest, AddTriangle) {
         -- e1 = v1-v0 = (1,0,0). e2 = v2-v0 = (0,1,0).
         -- cross(e1, e2) = (0, 0, 1).
         assert(math.abs(nz) > 0.9)
+        assert(g_id == geom_id)
     )");
     ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
 }
