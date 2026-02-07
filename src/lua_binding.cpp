@@ -159,6 +159,10 @@ void bind_lua(sol::state& lua, AppContext& ctx) {
         SDL_Texture* tex = static_cast<SDL_Texture*>(texture);
         SDL_UpdateTexture(tex, NULL, data.get_data(), data.get_width() * sizeof(uint32_t));
     });
+
+    app.set_function("get_ticks", []() -> uint32_t {
+        return SDL_GetTicks();
+    });
     
     // Bind Common Types (Embree, AppData)
     bind_common_types(lua);
