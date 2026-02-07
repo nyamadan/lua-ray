@@ -14,7 +14,9 @@ function RayTracer.new(width, height)
     self.current_scene_type = "color_pattern" -- Default scene
     self.current_scene_module = nil -- モジュールはreset_sceneで読み込まれる
     self.workers = {} -- Array of ThreadWorker
+    self.posteffect_workers = {} -- Array of ThreadWorker for PostEffect
     self.render_coroutine = nil -- Coroutine for single-threaded rendering
+    self.posteffect_coroutine = nil -- Coroutine for single-threaded PostEffect
     self.use_multithreading = false -- マルチスレッド使用フラグ
     self.NUM_THREADS = 8 -- スレッド数
     self.render_start_time = 0 -- Rendering start time
@@ -134,8 +136,13 @@ function RayTracer:init_scene()
 end
 
 function RayTracer:update_texture()
-    -- Update Texture from AppData
+    -- Update Texture from AppData (フロントバッファから)
     app.update_texture(self.texture, self.data)
+end
+
+function RayTracer:update_texture_from_back()
+    -- Update Texture from AppData's back buffer (レンダリング中途中表示用)
+    app.update_texture_from_back(self.texture, self.data)
 end
 
 -- スレッドレンダリングを開始
@@ -201,14 +208,22 @@ function RayTracer:update()
             end
         end
         
-        -- レンダリング中、テクスチャを更新
-        self:update_texture()
+        -- レンダリング中、バックバッファからテクスチャを更新
+        self:update_texture_from_back()
         
         if all_done then
             local end_time = app.get_ticks()
             print(string.format("Lua render finished (Multi-threaded). Time: %d ms", end_time - self.render_start_time))
             self.workers = {} -- 完了
-            self:update_texture() -- 最後に一度更新
+            
+            -- PostEffectが存在する場合は開始
+            if self.current_scene_module.post_effect then
+                self:start_posteffect()
+            else
+                -- PostEffect無しの場合はswapしてフロントに反映
+                self.data:swap()
+                self:update_texture()
+            end
         end
     
     -- Single-threaded coroutine update
@@ -220,11 +235,58 @@ function RayTracer:update()
                 print("Coroutine error: " .. tostring(err))
                 self.render_coroutine = nil
             end
-            self:update_texture()
+            self:update_texture_from_back()
         elseif status == "dead" then
             local end_time = app.get_ticks()
             print(string.format("Single-threaded render finished. Time: %d ms", end_time - self.render_start_time))
             self.render_coroutine = nil
+            
+            -- PostEffectが存在する場合は開始
+            if self.current_scene_module.post_effect then
+                self:start_posteffect()
+            else
+                -- PostEffect無しの場合はswapしてフロントに反映
+                self.data:swap()
+                self:update_texture()
+            end
+        end
+    
+    -- PostEffect Multi-threaded update
+    elseif #self.posteffect_workers > 0 then
+        local all_done = true
+        
+        for _, worker in ipairs(self.posteffect_workers) do
+            if not worker:is_done() then
+                all_done = false
+            end
+        end
+        
+        -- PostEffect中もバックバッファからテクスチャを更新
+        self:update_texture_from_back()
+        
+        if all_done then
+            local end_time = app.get_ticks()
+            print(string.format("PostEffect finished (Multi-threaded). Time: %d ms", end_time - self.render_start_time))
+            self.posteffect_workers = {}
+            -- PostEffect完了後にswap
+            self.data:swap()
+            self:update_texture()
+        end
+    
+    -- PostEffect Single-threaded coroutine update
+    elseif self.posteffect_coroutine then
+        local status = coroutine.status(self.posteffect_coroutine)
+        if status == "suspended" then
+            local success, err = coroutine.resume(self.posteffect_coroutine)
+            if not success then
+                print("PostEffect Coroutine error: " .. tostring(err))
+                self.posteffect_coroutine = nil
+            end
+            self:update_texture_from_back()
+        elseif status == "dead" then
+            local end_time = app.get_ticks()
+            print(string.format("PostEffect finished. Time: %d ms", end_time - self.render_start_time))
+            self.posteffect_coroutine = nil
             self:update_texture()
         end
     end
@@ -245,6 +307,67 @@ function RayTracer:render()
     end
 end
 
+-- PostEffectを開始
+function RayTracer:start_posteffect()
+    print("Starting PostEffect...")
+    
+    -- swap: フロントバッファ(完成画像) → バックバッファ(読み取り元)
+    -- バックバッファ → フロントバッファへ書き込んで次回swap
+    self.data:swap()
+    
+    if self.use_multithreading then
+        self:start_posteffect_threads()
+    else
+        self.posteffect_coroutine = self:create_posteffect_coroutine()
+    end
+end
+
+-- PostEffectスレッドを開始
+function RayTracer:start_posteffect_threads()
+    self.posteffect_workers = {}
+    
+    local h_step = math.ceil(self.height / self.NUM_THREADS)
+    
+    for i = 0, self.NUM_THREADS - 1 do
+        local y_start = i * h_step
+        local h = h_step
+        if y_start + h > self.height then
+            h = self.height - y_start
+        end
+        
+        if h > 0 then
+            local worker = ThreadWorker.create(self.data, self.scene, 0, y_start, self.width, h, i)
+            worker:start("posteffect_worker.lua", self.current_scene_type)
+            table.insert(self.posteffect_workers, worker)
+        end
+    end
+end
+
+-- PostEffect用コルーチン作成
+function RayTracer:create_posteffect_coroutine()
+    return coroutine.create(function()
+        print("Starting PostEffect (Coroutine)...")
+        local startTime = app.get_ticks()
+        local frameAllowance = 12
+        
+        for y = 0, self.height - 1 do
+            for x = 0, self.width - 1 do
+                self.current_scene_module.post_effect(self.data, x, y)
+                
+                if x % 100 == 0 then
+                    if (app.get_ticks() - startTime) >= frameAllowance then
+                        coroutine.yield()
+                        startTime = app.get_ticks()
+                    end
+                end
+            end
+        end
+        
+        -- PostEffect完了後にswap
+        self.data:swap()
+    end)
+end
+
 function RayTracer:on_ui()
     if ImGui.Begin("Lua Ray Tracer Control") then
         ImGui.Text("Welcome to Lua Ray Tracer!")
@@ -252,7 +375,7 @@ function RayTracer:on_ui()
         
         ImGui.Separator()
 
-        local is_rendering = (#self.workers > 0) or (self.render_coroutine ~= nil)
+        local is_rendering = (#self.workers > 0) or (self.render_coroutine ~= nil) or (#self.posteffect_workers > 0) or (self.posteffect_coroutine ~= nil)
         ImGui.BeginDisabled(is_rendering)
 
         -- Render Mode Selection
@@ -302,6 +425,12 @@ function RayTracer:on_ui()
             end
         end
         
+        if ImGui.RadioButton("PostEffect", type == "posteffect") then
+            if type ~= "posteffect" then
+                self:reset_scene("posteffect")
+            end
+        end
+        
         ImGui.Separator()
         
         if ImGui.Button("Reload Scene") then
@@ -317,6 +446,10 @@ function RayTracer:on_ui()
             ImGui.Text(string.format("Status: Rendering... (%d threads)", #self.workers))
         elseif self.render_coroutine then
             ImGui.Text("Status: Rendering... (Single-threaded)")
+        elseif #self.posteffect_workers > 0 then
+            ImGui.Text(string.format("Status: PostEffect... (%d threads)", #self.posteffect_workers))
+        elseif self.posteffect_coroutine then
+            ImGui.Text("Status: PostEffect... (Single-threaded)")
         else
             ImGui.Text("Status: Idle")
         end
