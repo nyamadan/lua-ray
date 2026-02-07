@@ -100,64 +100,71 @@ end
 function M.setup(embree_scene, app_data)
     print("Setup Ray Tracing Weekend Scene...")
     
-    materials = {}
+    -- マテリアルデータ（JSONシリアライズ可能な形式）
+    local material_data = {}
     local geomID
     
     -- 地面（大きな球体）
     geomID = embree_scene:add_sphere(0, -1000, 0, 1000)
-    materials[geomID] = Material.Lambertian(Vec3.new(0.5, 0.5, 0.5))
+    material_data[tostring(geomID)] = {type = "lambertian", albedo = {0.5, 0.5, 0.5}}
     
     -- 中央の3つの球体
     -- 1. ガラス球（中央左）
     geomID = embree_scene:add_sphere(0, 1, 0, 1.0)
-    materials[geomID] = Material.Dielectric(1.5)
+    material_data[tostring(geomID)] = {type = "dielectric", ir = 1.5}
     
     -- 2. 拡散反射球（中央）
     geomID = embree_scene:add_sphere(-4, 1, 0, 1.0)
-    materials[geomID] = Material.Lambertian(Vec3.new(0.4, 0.2, 0.1))
+    material_data[tostring(geomID)] = {type = "lambertian", albedo = {0.4, 0.2, 0.1}}
     
     -- 3. 金属球（中央右）
     geomID = embree_scene:add_sphere(4, 1, 0, 1.0)
-    materials[geomID] = Material.Metal(Vec3.new(0.7, 0.6, 0.5), 0.0)
+    material_data[tostring(geomID)] = {type = "metal", albedo = {0.7, 0.6, 0.5}, fuzz = 0.0}
     
     -- ランダムな小さい球体
     for a = -11, 10 do
         for b = -11, 10 do
             local choose_mat = math.random()
-            local center = Vec3.new(a + 0.9 * math.random(), 0.2, b + 0.9 * math.random())
+            local cx = a + 0.9 * math.random()
+            local cy = 0.2
+            local cz = b + 0.9 * math.random()
             
             -- 中央の大きな球体と重ならないようにする
-            local dist_from_center = (center - Vec3.new(4, 0.2, 0)):length()
+            local dx = cx - 4
+            local dy = cy - 0.2
+            local dz = cz - 0
+            local dist_from_center = math.sqrt(dx*dx + dy*dy + dz*dz)
+            
             if dist_from_center > 0.9 then
+                geomID = embree_scene:add_sphere(cx, cy, cz, 0.2)
+                
                 if choose_mat < 0.8 then
                     -- 拡散反射
-                    local albedo = Vec3.new(
-                        math.random() * math.random(),
-                        math.random() * math.random(),
-                        math.random() * math.random()
-                    )
-                    geomID = embree_scene:add_sphere(center.x, center.y, center.z, 0.2)
-                    materials[geomID] = Material.Lambertian(albedo)
+                    local r = math.random() * math.random()
+                    local g = math.random() * math.random()
+                    local b = math.random() * math.random()
+                    material_data[tostring(geomID)] = {type = "lambertian", albedo = {r, g, b}}
                 elseif choose_mat < 0.95 then
                     -- 金属
-                    local albedo = Vec3.new(
-                        random_double(0.5, 1),
-                        random_double(0.5, 1),
-                        random_double(0.5, 1)
-                    )
+                    local r = random_double(0.5, 1)
+                    local g = random_double(0.5, 1)
+                    local b = random_double(0.5, 1)
                     local fuzz = random_double(0, 0.5)
-                    geomID = embree_scene:add_sphere(center.x, center.y, center.z, 0.2)
-                    materials[geomID] = Material.Metal(albedo, fuzz)
+                    material_data[tostring(geomID)] = {type = "metal", albedo = {r, g, b}, fuzz = fuzz}
                 else
                     -- ガラス
-                    geomID = embree_scene:add_sphere(center.x, center.y, center.z, 0.2)
-                    materials[geomID] = Material.Dielectric(1.5)
+                    material_data[tostring(geomID)] = {type = "dielectric", ir = 1.5}
                 end
             end
         end
     end
     
-    print("Scene setup complete. Materials:", #materials)
+    -- JSONにシリアライズしてapp_dataに保存
+    local json = require("lib.json")
+    local json_str = json.encode(material_data)
+    app_data:set_string("materials", json_str)
+    
+    print("Scene setup complete. Material data saved to app_data")
 end
 
 -- シーンの開始: カメラとローカル変数の初期化
@@ -167,6 +174,30 @@ function M.start(embree_scene, app_data)
     width = app_data:width()
     height = app_data:height()
     local aspect_ratio = width / height
+    
+    -- app_dataからマテリアルデータを取得してMaterialオブジェクトを再構築
+    materials = {}
+    local json = require("lib.json")
+    local json_str = app_data:get_string("materials")
+    
+    if json_str and json_str ~= "" then
+        local material_data = json.decode(json_str)
+        for key, data in pairs(material_data) do
+            local geomID = tonumber(key)
+            if data.type == "lambertian" then
+                local albedo = Vec3.new(data.albedo[1], data.albedo[2], data.albedo[3])
+                materials[geomID] = Material.Lambertian(albedo)
+            elseif data.type == "metal" then
+                local albedo = Vec3.new(data.albedo[1], data.albedo[2], data.albedo[3])
+                materials[geomID] = Material.Metal(albedo, data.fuzz)
+            elseif data.type == "dielectric" then
+                materials[geomID] = Material.Dielectric(data.ir)
+            end
+        end
+        print("Materials deserialized successfully")
+    else
+        print("Warning: No materials found in app_data!")
+    end
     
     -- カメラの作成: 透視投影
     camera = Camera.new("perspective", {
