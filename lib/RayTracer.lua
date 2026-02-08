@@ -68,8 +68,12 @@ end
 function RayTracer:reset_scene(scene_type, force_reload)
     print("Resetting scene to: " .. scene_type)
     
+    -- 実行中のワーカーを安全に停止
+    self:terminate_workers()
+    
     -- Stop any existing coroutine
     self.render_coroutine = nil
+    self.posteffect_coroutine = nil
     
     -- クリーンアップコールバックの呼び出し
     if self.current_scene_module and self.current_scene_module.cleanup then
@@ -143,6 +147,21 @@ end
 function RayTracer:update_texture_from_back()
     -- Update Texture from AppData's back buffer (レンダリング中途中表示用)
     app.update_texture_from_back(self.texture, self.data)
+end
+
+-- すべてのワーカーを安全に停止
+function RayTracer:terminate_workers()
+    -- レンダリングワーカーをterminate
+    for _, worker in ipairs(self.workers) do
+        worker:terminate()
+    end
+    self.workers = {}
+    
+    -- PostEffectワーカーをterminate
+    for _, worker in ipairs(self.posteffect_workers) do
+        worker:terminate()
+    end
+    self.posteffect_workers = {}
 end
 
 -- スレッドレンダリングを開始

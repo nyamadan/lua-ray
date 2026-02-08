@@ -45,8 +45,21 @@ int main(int argc, char* argv[]) {
         };
     }
 
-    // 7. Enter main loop
-    main_loop(window, renderer, texture, on_frame_callback);
+    // 7. Setup on_quit callback
+    std::function<void()> on_quit_callback = nullptr;
+    sol::protected_function on_quit = lua["app"]["on_quit"];
+    if (on_quit.valid()) {
+        on_quit_callback = [&on_quit]() {
+            sol::protected_function_result result = on_quit();
+            if (!result.valid()) {
+                sol::error err = result;
+                std::cerr << "Lua Error in app.on_quit: " << err.what() << std::endl;
+            }
+        };
+    }
+
+    // 8. Enter main loop
+    main_loop(window, renderer, texture, on_frame_callback, on_quit_callback);
 
     // Cleanup
     if (texture) SDL_DestroyTexture(texture);

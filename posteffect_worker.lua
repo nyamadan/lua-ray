@@ -12,6 +12,10 @@ local y_start = _bounds.y
 local y_end = _bounds.y + _bounds.h - 1
 
 for y = y_start, y_end do
+    -- 行ごとにキャンセルチェック
+    if _is_cancel_requested() then
+        return
+    end
     for x = x_start, x_end do
         scene_module.post_effect(_app_data, x, y)
     end
