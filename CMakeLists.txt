@@ -5,6 +5,15 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # ---------------------------------------------------------
+# Release optimization
+# ---------------------------------------------------------
+if(NOT EMSCRIPTEN)
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_Release} -march=native -O3")
+else()
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_Release} -O3")
+endif()
+
+# ---------------------------------------------------------
 # Enable ccache if available
 # ---------------------------------------------------------
 find_program(CCACHE_PROGRAM ccache)
@@ -24,8 +33,12 @@ endif()
 # Emscripten Global Settings
 # ---------------------------------------------------------
 if(EMSCRIPTEN)
-    add_compile_options(-pthread)
-    add_link_options(-pthread)
+    add_compile_options(
+        "-pthread"
+    )
+    add_link_options(
+        "-pthread"
+    )
 endif()
 
 include(FetchContent)
@@ -225,7 +238,9 @@ if(EMSCRIPTEN)
         "-sDISABLE_EXCEPTION_CATCHING=0"
         "-sUSE_SDL=0"
         "-sALLOW_MEMORY_GROWTH=1"
-        "-sWASM=1"
+        "-sINITIAL_MEMORY=1GB"
+        "-sMAXIMUM_MEMORY=2GB"
+        "-sPTHREAD_POOL_SIZE=8"
         "-msse"
         "-msse2"
         # Bundle all lua scripts and scenes
