@@ -2,6 +2,7 @@
 import sys
 import signal
 import socketserver
+import threading
 from http.server import SimpleHTTPRequestHandler
 
 class Handler(SimpleHTTPRequestHandler):
@@ -33,7 +34,8 @@ def run_server(host="localhost", port=8000):
         # SIGTERM/SIGINT を受けたら shutdown を呼ぶ
         def handle_signal(signum, frame):
             print(f"Received signal {signum}, shutting down...")
-            httpd.shutdown()
+            # shutdown() は別スレッドから呼ぶ必要がある
+            threading.Thread(target=httpd.shutdown).start()
 
         signal.signal(signal.SIGTERM, handle_signal)
         signal.signal(signal.SIGINT, handle_signal)
