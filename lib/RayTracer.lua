@@ -244,6 +244,9 @@ function RayTracer:start_render_threads()
         self.width, self.height, self.BLOCK_SIZE, self.NUM_THREADS
     )
     
+    -- ブロックをシャッフルしてランダム順序にする
+    blocks = BlockUtils.shuffle_blocks(blocks)
+    
     -- スレッドIDごとにブロックをグループ化
     local groups = BlockUtils.group_blocks_by_thread(blocks, self.NUM_THREADS)
     
@@ -430,6 +433,9 @@ function RayTracer:start_posteffect_threads()
         self.width, self.height, self.BLOCK_SIZE, self.NUM_THREADS
     )
     
+    -- ブロックをシャッフルしてランダム順序にする
+    blocks = BlockUtils.shuffle_blocks(blocks)
+    
     -- スレッドIDごとにブロックをグループ化
     local groups = BlockUtils.group_blocks_by_thread(blocks, self.NUM_THREADS)
     
@@ -528,55 +534,36 @@ function RayTracer:on_ui()
         
         ImGui.Text("Scene Selection:")
         
-        local changed = false
-        local type = self.current_scene_type
+        -- Define scenes list
+        local scenes = {
+            { id = "color_pattern", name = "Color Pattern" },
+            { id = "triangle", name = "Triangle" },
+            { id = "sphere", name = "Sphere" },
+            { id = "materialed_sphere", name = "MatSphere" },
+            { id = "posteffect", name = "PostEffect" },
+            { id = "material_transfer", name = "MatTransfer" },
+            { id = "raytracing_weekend", name = "RTWeekend" },
+            { id = "cornell_box", name = "CornellBox" }
+        }
         
-        if ImGui.RadioButton("Color Pattern", type == "color_pattern") then
-            if type ~= "color_pattern" then
-                self:reset_scene("color_pattern")
+        local current_scene_name = "Unknown"
+        for _, scene in ipairs(scenes) do
+            if scene.id == self.current_scene_type then
+                current_scene_name = scene.name
+                break
             end
         end
         
-        if ImGui.RadioButton("Triangle", type == "triangle") then
-            if type ~= "triangle" then
-                self:reset_scene("triangle")
+        if ImGui.BeginCombo("##scene_selection", current_scene_name) then
+            for _, scene in ipairs(scenes) do
+                local is_selected = (scene.id == self.current_scene_type)
+                if ImGui.Selectable(scene.name, is_selected) then
+                    if self.current_scene_type ~= scene.id then
+                        self:reset_scene(scene.id)
+                    end
+                end
             end
-        end
-        
-        if ImGui.RadioButton("Sphere", type == "sphere") then
-            if type ~= "sphere" then
-                self:reset_scene("sphere")
-            end
-        end
-        
-        if ImGui.RadioButton("MatSphere", type == "materialed_sphere") then
-            if type ~= "materialed_sphere" then
-                self:reset_scene("materialed_sphere")
-            end
-        end
-        
-        if ImGui.RadioButton("PostEffect", type == "posteffect") then
-            if type ~= "posteffect" then
-                self:reset_scene("posteffect")
-            end
-        end
-        
-        if ImGui.RadioButton("MatTransfer", type == "material_transfer") then
-            if type ~= "material_transfer" then
-                self:reset_scene("material_transfer")
-            end
-        end
-        
-        if ImGui.RadioButton("RTWeekend", type == "raytracing_weekend") then
-            if type ~= "raytracing_weekend" then
-                self:reset_scene("raytracing_weekend")
-            end
-        end
-        
-        if ImGui.RadioButton("CornellBox", type == "cornell_box") then
-            if type ~= "cornell_box" then
-                self:reset_scene("cornell_box")
-            end
+            ImGui.EndCombo()
         end
 
         ImGui.Separator()

@@ -104,4 +104,36 @@ function BlockUtils.group_blocks_by_thread(blocks, num_threads)
     return groups
 end
 
+-- ========================================
+-- シャッフル
+-- ========================================
+
+--- ブロック配列をシャッフルする (Fisher-Yates シャッフル)
+--- @param blocks table ブロックの配列
+--- @param seed number|nil 乱数シード (nil の場合は現在時刻をシードとして使用)
+--- @return table シャッフルされたブロック配列（新規テーブル）
+function BlockUtils.shuffle_blocks(blocks, seed)
+    -- シードを設定
+    if seed then
+        math.randomseed(seed)
+    else
+        math.randomseed(os.time())
+    end
+    
+    -- 元の配列をコピー
+    local shuffled = {}
+    for i, block in ipairs(blocks) do
+        shuffled[i] = block
+    end
+    
+    -- Fisher-Yates シャッフル
+    local n = #shuffled
+    for i = n, 2, -1 do
+        local j = math.random(1, i)
+        shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+    end
+    
+    return shuffled
+end
+
 return BlockUtils

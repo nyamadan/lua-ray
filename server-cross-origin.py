@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
-# Based on:
-# https://gist.github.com/pezcode/d51926bdbadcbd4f22f5a5d2fb8e0394
-# https://stackoverflow.com/a/21957017
-# https://gist.github.com/HaiyangXu/ec88cbdce3cdbac7b8d5
-
 import sys
+import signal
 import socketserver
+import threading
 from http.server import SimpleHTTPRequestHandler
 
 class Handler(SimpleHTTPRequestHandler):
@@ -33,7 +30,21 @@ def run_server(host="localhost", port=8000):
     url = f"http://{host}:{port}"
     with socketserver.TCPServer((host, port), Handler) as httpd:
         print(f"Server running at {url}")
-        httpd.serve_forever()
+
+        # SIGTERM/SIGINT を受けたら shutdown を呼ぶ
+        def handle_signal(signum, frame):
+            print(f"Received signal {signum}, shutting down...")
+            # shutdown() は別スレッドから呼ぶ必要がある
+            threading.Thread(target=httpd.shutdown).start()
+
+        signal.signal(signal.SIGTERM, handle_signal)
+        signal.signal(signal.SIGINT, handle_signal)
+
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            # 念のため KeyboardInterrupt でも終了
+            httpd.shutdown()
 
 
 if __name__ == "__main__":
