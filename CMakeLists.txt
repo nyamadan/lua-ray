@@ -5,6 +5,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # ---------------------------------------------------------
+# Release optimization
+# ---------------------------------------------------------
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_Release} -march=native -O3")
+
+# ---------------------------------------------------------
 # Enable ccache if available
 # ---------------------------------------------------------
 find_program(CCACHE_PROGRAM ccache)
@@ -56,10 +61,19 @@ FetchContent_Declare(
     GIT_SHALLOW TRUE
     EXCLUDE_FROM_ALL
 )
-FetchContent_MakeAvailable(lua_src)
-
 # Luaのビルドルール定義 (FetchContent_MakeAvailable後、ソースディレクトリが確定する)
 FetchContent_GetProperties(lua_src)
+if(NOT lua_src_POPULATED)
+    FetchContent_Populate(lua_src)
+    # Apply patch to use single float
+    execute_process(
+        COMMAND git apply --ignore-whitespace --reject ${CMAKE_SOURCE_DIR}/patches/lua-single-float.patch
+        WORKING_DIRECTORY ${lua_src_SOURCE_DIR}
+        RESULT_VARIABLE LUA_PATCH_RESULT
+        ERROR_QUIET
+    )
+endif()
+
 file(GLOB LUA_CORE_SRC "${lua_src_SOURCE_DIR}/*.c")
 list(FILTER LUA_CORE_SRC EXCLUDE REGEX "lua\\.c|luac\\.c")
 

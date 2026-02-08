@@ -40,9 +40,9 @@ TEST_F(MaterialTest, CreateLambertian) {
     ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
     auto [type, x, y, z] = result.get<std::tuple<std::string, double, double, double>>();
     ASSERT_EQ(type, "lambertian");
-    ASSERT_EQ(x, 0.5);
-    ASSERT_EQ(y, 0.5);
-    ASSERT_EQ(z, 0.5);
+    ASSERT_NEAR(x, 0.5, 1e-5);
+    ASSERT_NEAR(y, 0.5, 1e-5);
+    ASSERT_NEAR(z, 0.5, 1e-5);
 }
 
 TEST_F(MaterialTest, LambertianScatterReturnsRay) {
@@ -89,8 +89,8 @@ TEST_F(MaterialTest, CreateMetal) {
     ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
     auto [type, x, fuzz] = result.get<std::tuple<std::string, double, double>>();
     ASSERT_EQ(type, "metal");
-    ASSERT_EQ(x, 0.8);
-    ASSERT_EQ(fuzz, 0.3);
+    ASSERT_NEAR(x, 0.8, 1e-5);
+    ASSERT_NEAR(fuzz, 0.3, 1e-5);
 }
 
 TEST_F(MaterialTest, MetalFuzzClampedTo1) {
@@ -152,7 +152,7 @@ TEST_F(MaterialTest, CreateDielectric) {
     ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
     auto [type, ir] = result.get<std::tuple<std::string, double>>();
     ASSERT_EQ(type, "dielectric");
-    ASSERT_EQ(ir, 1.5);
+    ASSERT_NEAR(ir, 1.5, 1e-5);
 }
 
 TEST_F(MaterialTest, DielectricScatterReturnsRay) {
@@ -204,9 +204,9 @@ TEST_F(MaterialTest, DielectricAttenuationIsWhite) {
     )");
     ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
     auto [x, y, z] = result.get<std::tuple<double, double, double>>();
-    ASSERT_EQ(x, 1.0);
-    ASSERT_EQ(y, 1.0);
-    ASSERT_EQ(z, 1.0);
+    ASSERT_NEAR(x, 1.0, 1e-5);
+    ASSERT_NEAR(y, 1.0, 1e-5);
+    ASSERT_NEAR(z, 1.0, 1e-5);
 }
 
 // ===========================================
