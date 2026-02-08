@@ -111,13 +111,8 @@ function RayTracer:set_resolution(new_width, new_height)
         texture = self.texture
     })
     
-    -- シーンを再初期化（geometryは再利用、カメラなどをリセット）
-    if self.current_scene_module and self.current_scene_module.start then
-        self.current_scene_module.start(self.scene, self.data)
-    end
-    
-    -- 再レンダリング
-    self:render()
+    -- シーンを再セットアップ（reset_sceneを利用）
+    self:reset_scene(self.current_scene_type)
 end
 
 function RayTracer:reset_scene(scene_type, force_reload)
