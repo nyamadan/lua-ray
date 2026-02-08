@@ -4,9 +4,9 @@
 local M = {}
 
 -- デフォルトパラメータ
-M.RADIUS = 3              -- フィルタ半径
-M.SIGMA_SPATIAL = 2.0     -- 空間の標準偏差
-M.SIGMA_COLOR = 0.1       -- 色の標準偏差 (0-1正規化)
+M.RADIUS = 5              -- フィルタ半径（大きいほど広範囲を平滑化）
+M.SIGMA_SPATIAL = 3.0     -- 空間の標準偏差
+M.SIGMA_COLOR = 0.15      -- 色の標準偏差 (0-1正規化、大きいほど異なる色も混合)
 
 -- ガウス関数
 -- @param x 入力値

@@ -1,10 +1,13 @@
 -- lib/Material.lua
--- マテリアルシステム (Ray Tracing in One Weekend用)
+-- マテリアルシステム (Ray Tracing in One Weekend + edupt パストレーシング用)
 
 local Vec3 = require('lib.Vec3')
 local Ray = require('lib.Ray')
 
 local Material = {}
+
+-- 自己交差防止用オフセット
+local kEPS = 1e-4
 
 -- ===========================================
 -- Lambertian (拡散反射マテリアル)
@@ -24,9 +27,15 @@ function Material.Lambertian(albedo)
             scatter_direction = rec.normal
         end
         
-        local scattered = Ray.new(rec.p, scatter_direction)
+        -- レイの原点にオフセットを加えて自己交差を防止
+        local origin = rec.p + rec.normal * kEPS
+        local scattered = Ray.new(origin, scatter_direction)
         local attenuation = self.albedo
         return scattered, attenuation
+    end
+    
+    function mat:emitted()
+        return Vec3.new(0, 0, 0)
     end
     
     return mat
@@ -48,7 +57,9 @@ function Material.Metal(albedo, fuzz)
         
         -- fuzz (ぼかし) を適用
         local scattered_direction = reflected + Vec3.random_in_unit_sphere() * self.fuzz
-        local scattered = Ray.new(rec.p, scattered_direction)
+        -- レイの原点にオフセットを加えて自己交差を防止
+        local origin = rec.p + rec.normal * kEPS
+        local scattered = Ray.new(origin, scattered_direction)
         local attenuation = self.albedo
         
         -- 反射レイが表面の下に入る場合は吸収（散乱なし）
@@ -57,6 +68,10 @@ function Material.Metal(albedo, fuzz)
         else
             return nil, nil
         end
+    end
+    
+    function mat:emitted()
+        return Vec3.new(0, 0, 0)
     end
     
     return mat
@@ -89,17 +104,49 @@ function Material.Dielectric(index_of_refraction)
         
         local cannot_refract = refraction_ratio * sin_theta > 1.0
         local direction
+        local is_reflection
         
         if cannot_refract or reflectance(cos_theta, refraction_ratio) > math.random() then
             -- 全反射またはシュリック近似による反射
             direction = Vec3.reflect(unit_direction, rec.normal)
+            is_reflection = true
         else
             -- 屈折
             direction = Vec3.refract(unit_direction, rec.normal, refraction_ratio)
+            is_reflection = false
         end
         
-        local scattered = Ray.new(rec.p, direction)
+        -- レイの原点にオフセットを加えて自己交差を防止
+        -- 反射は表側、屈折は裏側にオフセット
+        local offset_normal = is_reflection and rec.normal or (-rec.normal)
+        local origin = rec.p + offset_normal * kEPS
+        local scattered = Ray.new(origin, direction)
         return scattered, attenuation
+    end
+    
+    function mat:emitted()
+        return Vec3.new(0, 0, 0)
+    end
+    
+    return mat
+end
+
+-- ===========================================
+-- DiffuseLight (発光マテリアル)
+-- ===========================================
+
+function Material.DiffuseLight(emit_color)
+    local mat = {
+        type = "diffuse_light",
+        emit = emit_color
+    }
+    
+    function mat:scatter(ray_in, rec)
+        return nil, nil  -- 光源はレイを散乱させない
+    end
+    
+    function mat:emitted()
+        return self.emit
     end
     
     return mat
