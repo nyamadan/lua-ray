@@ -1,5 +1,6 @@
 -- RayTracer Class Definition
 local BlockUtils = require("lib.BlockUtils")
+local ResolutionPresets = require("lib.ResolutionPresets")
 
 RayTracer = {}
 RayTracer.__index = RayTracer
@@ -23,6 +24,7 @@ function RayTracer.new(width, height)
     self.NUM_THREADS = 8 -- スレッド数
     self.BLOCK_SIZE = 64 -- ブロックサイズ
     self.render_start_time = 0 -- Rendering start time
+    self.current_preset_index = ResolutionPresets.get_default_index() -- 解像度プリセットインデックス
     return self
 end
 
@@ -66,6 +68,56 @@ function RayTracer:init()
     -- Initialize Embree Device once
     print("Initializing Embree Device...")
     self.device = EmbreeDevice.new()
+end
+
+-- 解像度を変更
+-- テクスチャとAppDataを再作成し、シーンを再描画
+function RayTracer:set_resolution(new_width, new_height)
+    print(string.format("Changing resolution: %dx%d -> %dx%d", 
+        self.width, self.height, new_width, new_height))
+    
+    -- 実行中のワーカーを停止
+    self:terminate_workers()
+    
+    -- コルーチンを停止
+    self.render_coroutine = nil
+    self.posteffect_coroutine = nil
+    
+    -- 古いテクスチャを破棄 (存在する場合)
+    if self.texture and app.destroy_texture then
+        app.destroy_texture(self.texture)
+    end
+    
+    -- サイズを更新
+    self.width = new_width
+    self.height = new_height
+    
+    -- 新しいテクスチャを作成
+    self.texture = app.create_texture(self.renderer, self.width, self.height)
+    if self.texture == nil then
+        error("Error: Failed to create texture for new resolution")
+    end
+    
+    -- 新しいAppDataを作成
+    self.data = AppData.new(self.width, self.height)
+    
+    -- Configure Appを更新
+    app.configure({
+        width = self.width,
+        height = self.height,
+        title = "Lua Ray Tracing (AppData)",
+        window = self.window,
+        renderer = self.renderer,
+        texture = self.texture
+    })
+    
+    -- シーンを再初期化（geometryは再利用、カメラなどをリセット）
+    if self.current_scene_module and self.current_scene_module.start then
+        self.current_scene_module.start(self.scene, self.data)
+    end
+    
+    -- 再レンダリング
+    self:render()
 end
 
 function RayTracer:reset_scene(scene_type, force_reload)
@@ -454,6 +506,27 @@ function RayTracer:on_ui()
                 self.use_multithreading = true
                 self:render()
             end
+        end
+
+        ImGui.Separator()
+        
+        -- Resolution Presets Selection
+        ImGui.Text("Resolution:")
+        local presets = ResolutionPresets.get_presets()
+        local current_preset = presets[self.current_preset_index]
+        local preview = current_preset and current_preset.name or "Unknown"
+        
+        if ImGui.BeginCombo("##resolution", preview) then
+            for i, preset in ipairs(presets) do
+                local is_selected = (i == self.current_preset_index)
+                if ImGui.Selectable(preset.name, is_selected) then
+                    if i ~= self.current_preset_index then
+                        self.current_preset_index = i
+                        self:set_resolution(preset.width, preset.height)
+                    end
+                end
+            end
+            ImGui.EndCombo()
         end
 
         ImGui.Separator()

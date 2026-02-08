@@ -37,6 +37,37 @@ bool init_sdl(SDL_Window** window, SDL_Renderer** renderer, int width, int heigh
     return true;
 }
 
+// 実行中のメインループのテクスチャを動的に更新する
+void set_active_texture(SDL_Texture* texture) {
+    if (g_loop_context) {
+        g_loop_context->texture = texture;
+    }
+}
+
+// アスペクト比を維持したフィット矩形を計算
+static SDL_FRect calculate_fit_rect(int tex_w, int tex_h, int win_w, int win_h) {
+    float tex_aspect = static_cast<float>(tex_w) / static_cast<float>(tex_h);
+    float win_aspect = static_cast<float>(win_w) / static_cast<float>(win_h);
+    
+    float fit_w, fit_h;
+    
+    if (tex_aspect > win_aspect) {
+        // テクスチャが横長: 幅をウィンドウに合わせる
+        fit_w = static_cast<float>(win_w);
+        fit_h = fit_w / tex_aspect;
+    } else {
+        // テクスチャが縦長または同じ: 高さをウィンドウに合わせる
+        fit_h = static_cast<float>(win_h);
+        fit_w = fit_h * tex_aspect;
+    }
+    
+    // 中央揃え
+    float x = (static_cast<float>(win_w) - fit_w) / 2.0f;
+    float y = (static_cast<float>(win_h) - fit_h) / 2.0f;
+    
+    return SDL_FRect{ x, y, fit_w, fit_h };
+}
+
 // 1フレームの処理を行う関数
 static void main_loop_iteration() {
     if (!g_loop_context || !g_loop_context->running) {
@@ -78,10 +109,26 @@ static void main_loop_iteration() {
     }
 
     // Rendering
+    // 背景を黒でクリア（余白部分）
     SDL_SetRenderDrawColor(g_loop_context->renderer, 0, 0, 0, 255);
     SDL_RenderClear(g_loop_context->renderer);
+    
     if (g_loop_context->texture) {
-        SDL_RenderTexture(g_loop_context->renderer, g_loop_context->texture, NULL, NULL);
+        // ウィンドウサイズを取得
+        int win_w, win_h;
+        SDL_GetWindowSize(g_loop_context->window, &win_w, &win_h);
+        
+        // テクスチャサイズを取得
+        float tex_w_f, tex_h_f;
+        SDL_GetTextureSize(g_loop_context->texture, &tex_w_f, &tex_h_f);
+        int tex_w = static_cast<int>(tex_w_f);
+        int tex_h = static_cast<int>(tex_h_f);
+        
+        // フィット矩形を計算
+        SDL_FRect dst_rect = calculate_fit_rect(tex_w, tex_h, win_w, win_h);
+        
+        // アスペクト比を維持してテクスチャを描画
+        SDL_RenderTexture(g_loop_context->renderer, g_loop_context->texture, NULL, &dst_rect);
     }
     
     // Render ImGui

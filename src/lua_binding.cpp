@@ -107,6 +107,9 @@ void bind_lua(sol::state& lua, AppContext& ctx) {
     app.set_function("configure", [&](sol::table cfg) {
         ctx.width = cfg["width"].get_or(800);
         ctx.height = cfg["height"].get_or(600);
+        // テクスチャサイズはwidth/heightと同じ値を使用（レンダリング解像度）
+        ctx.texture_width = ctx.width;
+        ctx.texture_height = ctx.height;
         ctx.title = cfg["title"].get_or(std::string("Lua Ray Tracing"));
         
         sol::object win_obj = cfg["window"];
@@ -116,7 +119,11 @@ void bind_lua(sol::state& lua, AppContext& ctx) {
         if (ren_obj.is<void*>()) ctx.renderer = static_cast<SDL_Renderer*>(ren_obj.as<void*>());
         
         sol::object tex_obj = cfg["texture"];
-        if (tex_obj.is<void*>()) ctx.texture = static_cast<SDL_Texture*>(tex_obj.as<void*>());
+        if (tex_obj.is<void*>()) {
+            ctx.texture = static_cast<SDL_Texture*>(tex_obj.as<void*>());
+            // メインループのテクスチャも動的に更新
+            set_active_texture(ctx.texture);
+        }
     });
 
     // Provide a texture-based API

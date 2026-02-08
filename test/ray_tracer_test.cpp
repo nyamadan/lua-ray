@@ -107,3 +107,44 @@ TEST_F(RayTracerTest, CancelRendering) {
     ASSERT_TRUE(std::get<0>(res).is<sol::nil_t>()); 
     ASSERT_EQ(std::get<1>(res), 0);
 }
+
+// テスト: set_resolutionメソッドでwidth, heightが更新される
+TEST_F(RayTracerTest, SetResolutionUpdatesSize) {
+    // モックapp関数
+    lua.script(R"(
+        app.init_video = function() return true end
+        app.create_window = function(w, h, title) return "mock_window" end
+        app.create_renderer = function(win) return "mock_renderer" end
+        app.create_texture = function(r, w, h) return "mock_texture_" .. w .. "x" .. h end
+        app.configure = function(config) end
+        app.destroy_texture = function(tex) end
+        app.update_texture = function(tex, data) end
+    )");
+
+    auto result = lua.safe_script(R"(
+        local RayTracer = require('lib.RayTracer')
+        local rt = RayTracer.new(800, 600)
+        rt:init()
+        
+        -- 解像度を変更
+        if rt.set_resolution then
+            rt:set_resolution(1280, 720)
+            return rt.width, rt.height
+        else
+            return "set_resolution missing"
+        end
+    )");
+    
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    
+    if (result.get_type() == sol::type::string) {
+        std::string err = result;
+        if (err == "set_resolution missing") {
+            FAIL() << "RayTracer:set_resolution method is missing";
+        }
+    }
+    
+    std::tuple<int, int> size = result;
+    ASSERT_EQ(std::get<0>(size), 1280);
+    ASSERT_EQ(std::get<1>(size), 720);
+}
