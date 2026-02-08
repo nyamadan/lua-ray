@@ -186,3 +186,97 @@ TEST_F(BlockUtilsTest, GenerateBlocksHandlesRemainder) {
     int covered_count = lua["covered_count"];
     ASSERT_EQ(covered_count, 100 * 100);
 }
+
+// ========================================
+// shuffle_blocks テスト
+// ========================================
+
+// テスト9: シャッフル後も全ブロックが保持される
+TEST_F(BlockUtilsTest, ShuffleBlocksReturnsAllBlocks) {
+    lua.script(R"(
+        local BlockUtils = require("lib.BlockUtils")
+        local blocks = BlockUtils.generate_blocks(256, 256, 64, 4)
+        local original_count = #blocks
+        
+        local shuffled = BlockUtils.shuffle_blocks(blocks, 12345)
+        result_count = #shuffled
+        original_count_result = original_count
+    )");
+    
+    int original_count = lua["original_count_result"];
+    int shuffled_count = lua["result_count"];
+    ASSERT_EQ(shuffled_count, original_count);
+}
+
+// テスト10: 同じシードで同じ結果になる（決定論的）
+TEST_F(BlockUtilsTest, ShuffleBlocksWithSeedIsDeterministic) {
+    lua.script(R"(
+        local BlockUtils = require("lib.BlockUtils")
+        local blocks = BlockUtils.generate_blocks(128, 128, 64, 2)
+        
+        local shuffled1 = BlockUtils.shuffle_blocks(blocks, 42)
+        local shuffled2 = BlockUtils.shuffle_blocks(blocks, 42)
+        
+        -- 両方の順序が同じか確認
+        result_same = true
+        for i = 1, #shuffled1 do
+            if shuffled1[i].x ~= shuffled2[i].x or shuffled1[i].y ~= shuffled2[i].y then
+                result_same = false
+                break
+            end
+        end
+    )");
+    
+    bool result_same = lua["result_same"];
+    ASSERT_TRUE(result_same);
+}
+
+// テスト11: シャッフルにより順序が変わる（異なるシードで異なる結果）
+TEST_F(BlockUtilsTest, ShuffleBlocksChangesOrder) {
+    lua.script(R"(
+        local BlockUtils = require("lib.BlockUtils")
+        local blocks = BlockUtils.generate_blocks(256, 256, 64, 4)
+        
+        local shuffled1 = BlockUtils.shuffle_blocks(blocks, 123)
+        local shuffled2 = BlockUtils.shuffle_blocks(blocks, 456)
+        
+        -- 異なるシードで異なる順序になるか確認
+        result_different = false
+        for i = 1, #shuffled1 do
+            if shuffled1[i].x ~= shuffled2[i].x or shuffled1[i].y ~= shuffled2[i].y then
+                result_different = true
+                break
+            end
+        end
+    )");
+    
+    bool result_different = lua["result_different"];
+    ASSERT_TRUE(result_different);
+}
+
+// テスト12: 元の配列は変更されない
+TEST_F(BlockUtilsTest, ShuffleBlocksDoesNotModifyOriginal) {
+    lua.script(R"(
+        local BlockUtils = require("lib.BlockUtils")
+        local blocks = BlockUtils.generate_blocks(128, 128, 64, 2)
+        
+        -- 元の最初のブロックを記録
+        original_first_x = blocks[1].x
+        original_first_y = blocks[1].y
+        
+        -- シャッフル実行
+        local shuffled = BlockUtils.shuffle_blocks(blocks, 99999)
+        
+        -- 元の配列が変更されていないか確認
+        after_first_x = blocks[1].x
+        after_first_y = blocks[1].y
+    )");
+    
+    int original_x = lua["original_first_x"];
+    int original_y = lua["original_first_y"];
+    int after_x = lua["after_first_x"];
+    int after_y = lua["after_first_y"];
+    
+    ASSERT_EQ(original_x, after_x);
+    ASSERT_EQ(original_y, after_y);
+}

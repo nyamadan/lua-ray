@@ -244,6 +244,9 @@ function RayTracer:start_render_threads()
         self.width, self.height, self.BLOCK_SIZE, self.NUM_THREADS
     )
     
+    -- ブロックをシャッフルしてランダム順序にする
+    blocks = BlockUtils.shuffle_blocks(blocks)
+    
     -- スレッドIDごとにブロックをグループ化
     local groups = BlockUtils.group_blocks_by_thread(blocks, self.NUM_THREADS)
     
@@ -429,6 +432,9 @@ function RayTracer:start_posteffect_threads()
     local blocks = BlockUtils.generate_blocks(
         self.width, self.height, self.BLOCK_SIZE, self.NUM_THREADS
     )
+    
+    -- ブロックをシャッフルしてランダム順序にする
+    blocks = BlockUtils.shuffle_blocks(blocks)
     
     -- スレッドIDごとにブロックをグループ化
     local groups = BlockUtils.group_blocks_by_thread(blocks, self.NUM_THREADS)
