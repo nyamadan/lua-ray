@@ -44,7 +44,13 @@ void bind_worker_lua(sol::state& lua) {
     // Basic types
     bind_common_types(lua);
     
-    // We might want to bind other utilities (math etc were opened in thread_worker.cpp)
+    // Create 'app' namespace for worker (limited functions)
+    auto app = lua.create_named_table("app");
+    
+    // get_ticks is needed for timing/cancel check
+    app.set_function("get_ticks", []() -> uint32_t {
+        return SDL_GetTicks();
+    });
 }
 
 void bind_lua(sol::state& lua, AppContext& ctx) {
