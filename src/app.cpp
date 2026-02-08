@@ -14,6 +14,7 @@ struct MainLoopContext {
     SDL_Renderer* renderer;
     SDL_Texture* texture;
     std::function<void()> on_frame;
+    std::function<void()> on_quit;
     bool running;
 };
 
@@ -48,11 +49,21 @@ static void main_loop_iteration() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         ImGui_ImplSDL3_ProcessEvent(&event);
+        
+        // 終了イベントを処理（1回だけon_quitを呼ぶ）
+        bool should_quit = false;
         if (event.type == SDL_EVENT_QUIT) {
-            g_loop_context->running = false;
+            should_quit = true;
         }
         if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && 
             event.window.windowID == SDL_GetWindowID(g_loop_context->window)) {
+            should_quit = true;
+        }
+        
+        if (should_quit && g_loop_context->running) {
+            if (g_loop_context->on_quit) {
+                g_loop_context->on_quit();
+            }
             g_loop_context->running = false;
         }
     }
@@ -80,7 +91,7 @@ static void main_loop_iteration() {
     SDL_RenderPresent(g_loop_context->renderer);
 }
 
-void main_loop(SDL_Window* window, SDL_Renderer* renderer, SDL_Texture* texture, std::function<void()> on_frame) {
+void main_loop(SDL_Window* window, SDL_Renderer* renderer, SDL_Texture* texture, std::function<void()> on_frame, std::function<void()> on_quit) {
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -101,6 +112,7 @@ void main_loop(SDL_Window* window, SDL_Renderer* renderer, SDL_Texture* texture,
     context.renderer = renderer;
     context.texture = texture;
     context.on_frame = on_frame;
+    context.on_quit = on_quit;
     context.running = true;
     g_loop_context = &context;
 

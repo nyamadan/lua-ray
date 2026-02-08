@@ -25,6 +25,10 @@ local y_end = _bounds.y + _bounds.h - 1
 -- print(string.format("Thread %d starting: x[%d-%d] y[%d-%d]", _thread_id, x_start, x_end, y_start, y_end))
 
 for y = y_start, y_end do
+    -- 行ごとにキャンセルチェック（ピクセルごとは性能への影響が大きい）
+    if _is_cancel_requested() then
+        return
+    end
     for x = x_start, x_end do
         scene_module.shade(_app_data, x, y)
     end

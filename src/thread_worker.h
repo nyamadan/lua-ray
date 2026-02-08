@@ -17,7 +17,9 @@ public:
 
     void start(const std::string& script_path, const std::string& scene_type);
     void join();
+    void terminate();
     bool is_done() const;
+    bool is_cancel_requested() const;
     float get_progress() const;
 
 private:
@@ -30,5 +32,6 @@ private:
     
     std::thread m_thread;
     std::atomic<bool> m_done{true};
+    std::atomic<bool> m_cancel_requested{false};
     std::atomic<float> m_progress{0.0f};
 };

@@ -23,3 +23,9 @@ function app.on_frame()
     raytracer:update()
     raytracer:on_ui()
 end
+
+-- Set global quit callback (ウィンドウ終了時にワーカーを安全に停止)
+function app.on_quit()
+    print("Terminating workers before quit...")
+    raytracer:terminate_workers()
+end

@@ -30,6 +30,15 @@ void ThreadWorker::join() {
     }
 }
 
+void ThreadWorker::terminate() {
+    m_cancel_requested = true;
+    join();
+}
+
+bool ThreadWorker::is_cancel_requested() const {
+    return m_cancel_requested;
+}
+
 bool ThreadWorker::is_done() const {
     return m_done;
 }
@@ -63,6 +72,11 @@ void ThreadWorker::thread_func(std::string script_path, std::string scene_type) 
     
     lua["_scene_type"] = scene_type;
     lua["_thread_id"] = m_thread_id;
+    
+    // キャンセル確認関数を注入（ワーカーからC++のフラグを確認できるようにする）
+    lua["_is_cancel_requested"] = [this]() -> bool {
+        return m_cancel_requested.load();
+    };
 
     // Execute the worker script
     // The worker script is expected to require the scene and run the loop

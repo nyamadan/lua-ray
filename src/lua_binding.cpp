@@ -187,7 +187,9 @@ void bind_lua(sol::state& lua, AppContext& ctx) {
         },
         "start", &ThreadWorker::start,
         "join", &ThreadWorker::join,
+        "terminate", &ThreadWorker::terminate,
         "is_done", &ThreadWorker::is_done,
+        "is_cancel_requested", &ThreadWorker::is_cancel_requested,
         "get_progress", &ThreadWorker::get_progress
     );
 }
