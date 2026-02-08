@@ -167,6 +167,21 @@ function RayTracer:terminate_workers()
     self.posteffect_workers = {}
 end
 
+-- レンダリングをキャンセル
+function RayTracer:cancel()
+    print("Cancelling rendering...")
+    
+    -- ワーカーを停止
+    self:terminate_workers()
+    
+    -- コルーチンを破棄
+    self.render_coroutine = nil
+    self.posteffect_coroutine = nil
+    
+    -- 状態をアイドルに戻すための追加処理があれば記述
+    -- 例: プログレスバーのリセットなど
+end
+
 -- スレッドレンダリングを開始（ブロック単位分割、9スレッド制限）
 function RayTracer:start_render_threads()
     local json = require("lib.json")
@@ -421,8 +436,6 @@ function RayTracer:on_ui()
     if ImGui.Begin("Lua Ray Tracer Control") then
         ImGui.Text("Welcome to Lua Ray Tracer!")
         ImGui.Text(string.format("Resolution: %d x %d", self.width, self.height))
-        
-        ImGui.Separator()
 
         local is_rendering = (#self.workers > 0) or (self.render_coroutine ~= nil) or (#self.posteffect_workers > 0) or (self.posteffect_coroutine ~= nil)
         ImGui.BeginDisabled(is_rendering)
@@ -497,15 +510,24 @@ function RayTracer:on_ui()
                 self:reset_scene("cornell_box")
             end
         end
-        
+
         ImGui.Separator()
         
         if ImGui.Button("Reload Scene") then
             print("Reloading scene module and re-rendering")
             self:reset_scene(self.current_scene_type, true) -- force_reload = true
         end
-        
         ImGui.EndDisabled()
+        
+        ImGui.Separator()
+
+        -- Terminate Button (Enable only when rendering)
+        ImGui.BeginDisabled(not is_rendering)
+        if ImGui.Button("Terminate") then
+            self:cancel()
+        end
+        ImGui.EndDisabled()
+
         
         ImGui.Separator()
         

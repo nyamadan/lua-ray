@@ -51,3 +51,40 @@ TEST_F(ImGuiTest, LuaBindBeginEnd) {
 
     ImGui::Render();
 }
+
+TEST_F(ImGuiTest, LuaBindDisabled) {
+    sol::state lua;
+    lua.open_libraries(sol::lib::base);
+    bind_imgui(lua);
+
+    // Setup IO for NewFrame
+    ImGuiIO& io = ImGui::GetIO();
+    io.DisplaySize = ImVec2(1920, 1080);
+    io.DeltaTime = 1.0f / 60.0f;
+
+    ImGui::NewFrame();
+
+    auto result = lua.script(R"(
+        local workers = {}
+        local render_coroutine = nil
+        -- Exact expression from RayTracer.lua
+        local is_rendering = (#workers > 0) or (render_coroutine ~= nil)
+        
+        ImGui.Begin("Disabled Window")
+        
+        -- pass expression result
+        ImGui.BeginDisabled(is_rendering)
+        ImGui.Text("Disabled Text")
+        ImGui.EndDisabled()
+        
+        -- pass false explicitly
+        ImGui.BeginDisabled(false)
+        ImGui.EndDisabled()
+
+        ImGui.End()
+    )");
+
+    EXPECT_TRUE(result.valid()) << ((sol::error)result).what();
+    
+    ImGui::Render();
+}
