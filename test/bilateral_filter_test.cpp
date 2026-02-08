@@ -50,7 +50,7 @@ TEST_F(BilateralFilterTest, GaussianAtZero) {
     )");
     ASSERT_TRUE(result.valid());
     double value = result.get<double>();
-    ASSERT_NEAR(value, 1.0, 1e-9);
+    ASSERT_NEAR(value, 1.0, 1e-5);
 }
 
 TEST_F(BilateralFilterTest, GaussianDecreases) {
@@ -76,7 +76,7 @@ TEST_F(BilateralFilterTest, GaussianWithSigma) {
     ASSERT_TRUE(result.valid());
     double value = result.get<double>();
     double expected = std::exp(-0.5);
-    ASSERT_NEAR(value, expected, 1e-9);
+    ASSERT_NEAR(value, expected, 1e-5);
 }
 
 // ===========================================

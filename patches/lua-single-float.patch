@@ -1,0 +1,13 @@
+diff --git a/luaconf.h b/luaconf.h
+index a0c5d5e..b3c2e1f 100644
+--- a/luaconf.h
++++ b/luaconf.h
+@@ -116,7 +116,7 @@
+ 
+ /* Default configuration ('long long' and 'double', for 64-bit Lua) */
+ #define LUA_INT_DEFAULT		LUA_INT_LONGLONG
+-#define LUA_FLOAT_DEFAULT	LUA_FLOAT_DOUBLE
++#define LUA_FLOAT_DEFAULT	LUA_FLOAT_FLOAT
+ 
+ 
+ /*

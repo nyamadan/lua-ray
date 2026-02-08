@@ -198,10 +198,10 @@ TEST_F(Vec3Test, Normalize) {
     )");
     ASSERT_TRUE(result.valid());
     auto [x, y, z, len] = result.get<std::tuple<double, double, double, double>>();
-    ASSERT_NEAR(x, 0.6, 1e-9);
-    ASSERT_NEAR(y, 0.8, 1e-9);
-    ASSERT_NEAR(z, 0.0, 1e-9);
-    ASSERT_NEAR(len, 1.0, 1e-9);
+    ASSERT_NEAR(x, 0.6, 1e-5);
+    ASSERT_NEAR(y, 0.8, 1e-5);
+    ASSERT_NEAR(z, 0.0, 1e-5);
+    ASSERT_NEAR(len, 1.0, 1e-5);
 }
 
 // ===========================================
@@ -221,9 +221,9 @@ TEST_F(Vec3Test, Reflect) {
     ASSERT_TRUE(result.valid());
     auto [x, y, z] = result.get<std::tuple<double, double, double>>();
     double inv_sqrt2 = 1.0 / std::sqrt(2.0);
-    ASSERT_NEAR(x, inv_sqrt2, 1e-9);
-    ASSERT_NEAR(y, inv_sqrt2, 1e-9);
-    ASSERT_NEAR(z, 0.0, 1e-9);
+    ASSERT_NEAR(x, inv_sqrt2, 1e-5);
+    ASSERT_NEAR(y, inv_sqrt2, 1e-5);
+    ASSERT_NEAR(z, 0.0, 1e-5);
 }
 
 TEST_F(Vec3Test, NearZero) {
@@ -262,5 +262,5 @@ TEST_F(Vec3Test, RandomUnitVector) {
     )");
     ASSERT_TRUE(result.valid());
     double len = result.get<double>();
-    ASSERT_NEAR(len, 1.0, 1e-9);  // 単位ベクトルなので長さは1
+    ASSERT_NEAR(len, 1.0, 1e-5);  // 単位ベクトルなので長さは1
 }

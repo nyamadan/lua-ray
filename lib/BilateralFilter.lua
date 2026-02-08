@@ -72,12 +72,12 @@ function M.filter(data, x, y, params)
     -- 正規化して返す
     if weight_sum > 0 then
         return 
-            math.floor((sum_r / weight_sum) * 255),
-            math.floor((sum_g / weight_sum) * 255),
-            math.floor((sum_b / weight_sum) * 255)
+            math.floor((sum_r / weight_sum) * 255 + 0.5),
+            math.floor((sum_g / weight_sum) * 255 + 0.5),
+            math.floor((sum_b / weight_sum) * 255 + 0.5)
     else
         -- weight_sumが0の場合は元の色をそのまま返す
-        return math.floor(cr * 255), math.floor(cg * 255), math.floor(cb * 255)
+        return math.floor(cr * 255 + 0.5), math.floor(cg * 255 + 0.5), math.floor(cb * 255 + 0.5)
     end
 end
 
