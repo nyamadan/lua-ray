@@ -5,11 +5,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # ---------------------------------------------------------
-# Release optimization
-# ---------------------------------------------------------
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_Release} -march=native -O3")
-
-# ---------------------------------------------------------
 # Enable ccache if available
 # ---------------------------------------------------------
 find_program(CCACHE_PROGRAM ccache)
