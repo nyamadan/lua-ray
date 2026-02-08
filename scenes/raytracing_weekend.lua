@@ -8,6 +8,7 @@ local Vec3 = require('lib.Vec3')
 local Ray = require('lib.Ray')
 local Material = require('lib.Material')
 local Camera = require('lib.Camera')
+local BilateralFilter = require('lib.BilateralFilter')
 
 -- モジュール内変数
 local scene = nil
@@ -246,6 +247,13 @@ function M.shade(data, x, y)
     local flip_y = height - 1 - y
     
     data:set_pixel(x, flip_y, math.floor(255 * r), math.floor(255 * g), math.floor(255 * b))
+end
+
+-- ポストエフェクト: バイラテラルフィルタによるノイズ低減
+-- フロントバッファから読み取り、バックバッファに書き込む
+function M.post_effect(data, x, y)
+    local r, g, b = BilateralFilter.filter(data, x, y)
+    data:set_pixel(x, y, r, g, b)
 end
 
 return M
