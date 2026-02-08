@@ -46,4 +46,14 @@ void bind_imgui(sol::state& lua) {
         [](float fraction) { ImGui::ProgressBar(fraction); },
         [](float fraction, const char* overlay) { ImGui::ProgressBar(fraction, ImVec2(-FLT_MIN, 0), overlay); }
     ));
+
+    // ComboBox用バインディング
+    imgui.set_function("BeginCombo", [](const char* label, const char* preview_value) -> bool {
+        return ImGui::BeginCombo(label, preview_value);
+    });
+    imgui.set_function("EndCombo", &ImGui::EndCombo);
+    imgui.set_function("Selectable", sol::overload(
+        [](const char* label) -> bool { return ImGui::Selectable(label); },
+        [](const char* label, bool selected) -> bool { return ImGui::Selectable(label, selected); }
+    ));
 }

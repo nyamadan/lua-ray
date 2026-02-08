@@ -6,6 +6,8 @@
 struct AppContext {
     int width = 800;
     int height = 600;
+    int texture_width = 800;  // テクスチャ幅（スケーリング計算用）
+    int texture_height = 600; // テクスチャ高さ（スケーリング計算用）
     std::string title = "Lua Ray Tracing";
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
