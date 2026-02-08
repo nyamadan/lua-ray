@@ -1,4 +1,6 @@
 -- RayTracer Class Definition
+local BlockUtils = require("lib.BlockUtils")
+
 RayTracer = {}
 RayTracer.__index = RayTracer
 
@@ -19,6 +21,7 @@ function RayTracer.new(width, height)
     self.posteffect_coroutine = nil -- Coroutine for single-threaded PostEffect
     self.use_multithreading = false -- マルチスレッド使用フラグ
     self.NUM_THREADS = 8 -- スレッド数
+    self.BLOCK_SIZE = 64 -- ブロックサイズ
     self.render_start_time = 0 -- Rendering start time
     return self
 end
@@ -164,26 +167,39 @@ function RayTracer:terminate_workers()
     self.posteffect_workers = {}
 end
 
--- スレッドレンダリングを開始
+-- スレッドレンダリングを開始（ブロック単位分割、9スレッド制限）
 function RayTracer:start_render_threads()
+    local json = require("lib.json")
+    
     -- Stop any existing coroutine
     self.render_coroutine = nil
     
-    -- 既存のワーカーをクリア (GCでjoinされるが、明示的に待つほうが安全かもしれない)
+    -- 既存のワーカーをクリア
     self.workers = {}
     
-    local h_step = math.ceil(self.height / self.NUM_THREADS)
+    -- ブロック単位で画面を分割
+    local blocks = BlockUtils.generate_blocks(
+        self.width, self.height, self.BLOCK_SIZE, self.NUM_THREADS
+    )
     
-    for i = 0, self.NUM_THREADS - 1 do
-        local y_start = i * h_step
-        local h = h_step
-        if y_start + h > self.height then
-            h = self.height - y_start
-        end
-        
-        if h > 0 then
-            -- ThreadWorker.create(data, scene, x, y, w, h, id)
-            local worker = ThreadWorker.create(self.data, self.scene, 0, y_start, self.width, h, i)
+    -- スレッドIDごとにブロックをグループ化
+    local groups = BlockUtils.group_blocks_by_thread(blocks, self.NUM_THREADS)
+    
+    -- 各スレッドに対してワーカーを起動（NUM_THREADS個のみ）
+    for thread_id = 0, self.NUM_THREADS - 1 do
+        local thread_blocks = groups[thread_id]
+        if #thread_blocks > 0 then
+            -- ブロックリストをJSONでAppDataに保存
+            local blocks_key = "worker_blocks_" .. thread_id
+            self.data:set_string(blocks_key, json.encode(thread_blocks))
+            
+            -- 最初のブロックをboundsとして渡す（後方互換用）
+            local first_block = thread_blocks[1]
+            local worker = ThreadWorker.create(
+                self.data, self.scene,
+                first_block.x, first_block.y, first_block.w, first_block.h,
+                thread_id
+            )
             worker:start("worker.lua", self.current_scene_type)
             table.insert(self.workers, worker)
         end
@@ -341,21 +357,35 @@ function RayTracer:start_posteffect()
     end
 end
 
--- PostEffectスレッドを開始
+-- PostEffectスレッドを開始（ブロック単位分割、スレッド制限）
 function RayTracer:start_posteffect_threads()
+    local json = require("lib.json")
+    
     self.posteffect_workers = {}
     
-    local h_step = math.ceil(self.height / self.NUM_THREADS)
+    -- ブロック単位で画面を分割
+    local blocks = BlockUtils.generate_blocks(
+        self.width, self.height, self.BLOCK_SIZE, self.NUM_THREADS
+    )
     
-    for i = 0, self.NUM_THREADS - 1 do
-        local y_start = i * h_step
-        local h = h_step
-        if y_start + h > self.height then
-            h = self.height - y_start
-        end
-        
-        if h > 0 then
-            local worker = ThreadWorker.create(self.data, self.scene, 0, y_start, self.width, h, i)
+    -- スレッドIDごとにブロックをグループ化
+    local groups = BlockUtils.group_blocks_by_thread(blocks, self.NUM_THREADS)
+    
+    -- 各スレッドに対してワーカーを起動（NUM_THREADS個のみ）
+    for thread_id = 0, self.NUM_THREADS - 1 do
+        local thread_blocks = groups[thread_id]
+        if #thread_blocks > 0 then
+            -- ブロックリストをJSONでAppDataに保存
+            local blocks_key = "posteffect_blocks_" .. thread_id
+            self.data:set_string(blocks_key, json.encode(thread_blocks))
+            
+            -- 最初のブロックをboundsとして渡す
+            local first_block = thread_blocks[1]
+            local worker = ThreadWorker.create(
+                self.data, self.scene,
+                first_block.x, first_block.y, first_block.w, first_block.h,
+                thread_id
+            )
             worker:start("posteffect_worker.lua", self.current_scene_type)
             table.insert(self.posteffect_workers, worker)
         end
