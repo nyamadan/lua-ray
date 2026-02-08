@@ -443,6 +443,12 @@ function RayTracer:on_ui()
             end
         end
         
+        if ImGui.RadioButton("CornellBox", type == "cornell_box") then
+            if type ~= "cornell_box" then
+                self:reset_scene("cornell_box")
+            end
+        end
+        
         ImGui.Separator()
         
         if ImGui.Button("Reload Scene") then

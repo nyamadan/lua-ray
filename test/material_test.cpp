@@ -208,3 +208,125 @@ TEST_F(MaterialTest, DielectricAttenuationIsWhite) {
     ASSERT_EQ(y, 1.0);
     ASSERT_EQ(z, 1.0);
 }
+
+// ===========================================
+// DiffuseLight (発光マテリアル) テスト
+// ===========================================
+
+TEST_F(MaterialTest, CreateDiffuseLight) {
+    auto result = lua.safe_script(R"(
+        local Vec3 = require('lib.Vec3')
+        local Material = require('lib.Material')
+        local emit = Vec3.new(10.0, 10.0, 10.0)
+        local mat = Material.DiffuseLight(emit)
+        return mat.type, mat.emit.x, mat.emit.y, mat.emit.z
+    )");
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    auto [type, x, y, z] = result.get<std::tuple<std::string, double, double, double>>();
+    ASSERT_EQ(type, "diffuse_light");
+    ASSERT_EQ(x, 10.0);
+    ASSERT_EQ(y, 10.0);
+    ASSERT_EQ(z, 10.0);
+}
+
+TEST_F(MaterialTest, DiffuseLightDoesNotScatter) {
+    auto result = lua.safe_script(R"(
+        local Vec3 = require('lib.Vec3')
+        local Ray = require('lib.Ray')
+        local Material = require('lib.Material')
+        
+        local emit = Vec3.new(10.0, 10.0, 10.0)
+        local mat = Material.DiffuseLight(emit)
+        
+        local hit_record = {
+            p = Vec3.new(0, 0, 0),
+            normal = Vec3.new(0, 1, 0),
+            t = 1.0,
+            front_face = true
+        }
+        
+        local ray_in = Ray.new(Vec3.new(0, 1, 0), Vec3.new(0, -1, 0))
+        local scattered, attenuation = mat:scatter(ray_in, hit_record)
+        
+        return scattered == nil, attenuation == nil
+    )");
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    auto [no_scatter, no_attenuation] = result.get<std::tuple<bool, bool>>();
+    ASSERT_TRUE(no_scatter);
+    ASSERT_TRUE(no_attenuation);
+}
+
+TEST_F(MaterialTest, DiffuseLightEmitted) {
+    auto result = lua.safe_script(R"(
+        local Vec3 = require('lib.Vec3')
+        local Material = require('lib.Material')
+        
+        local emit = Vec3.new(15.0, 15.0, 15.0)
+        local mat = Material.DiffuseLight(emit)
+        local emitted = mat:emitted()
+        
+        return emitted.x, emitted.y, emitted.z
+    )");
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    auto [x, y, z] = result.get<std::tuple<double, double, double>>();
+    ASSERT_EQ(x, 15.0);
+    ASSERT_EQ(y, 15.0);
+    ASSERT_EQ(z, 15.0);
+}
+
+// ===========================================
+// 既存マテリアルの emitted() テスト
+// ===========================================
+
+TEST_F(MaterialTest, LambertianEmittedIsBlack) {
+    auto result = lua.safe_script(R"(
+        local Vec3 = require('lib.Vec3')
+        local Material = require('lib.Material')
+        
+        local albedo = Vec3.new(0.5, 0.5, 0.5)
+        local mat = Material.Lambertian(albedo)
+        local emitted = mat:emitted()
+        
+        return emitted.x, emitted.y, emitted.z
+    )");
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    auto [x, y, z] = result.get<std::tuple<double, double, double>>();
+    ASSERT_EQ(x, 0.0);
+    ASSERT_EQ(y, 0.0);
+    ASSERT_EQ(z, 0.0);
+}
+
+TEST_F(MaterialTest, MetalEmittedIsBlack) {
+    auto result = lua.safe_script(R"(
+        local Vec3 = require('lib.Vec3')
+        local Material = require('lib.Material')
+        
+        local albedo = Vec3.new(0.8, 0.8, 0.8)
+        local mat = Material.Metal(albedo, 0.3)
+        local emitted = mat:emitted()
+        
+        return emitted.x, emitted.y, emitted.z
+    )");
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    auto [x, y, z] = result.get<std::tuple<double, double, double>>();
+    ASSERT_EQ(x, 0.0);
+    ASSERT_EQ(y, 0.0);
+    ASSERT_EQ(z, 0.0);
+}
+
+TEST_F(MaterialTest, DielectricEmittedIsBlack) {
+    auto result = lua.safe_script(R"(
+        local Vec3 = require('lib.Vec3')
+        local Material = require('lib.Material')
+        
+        local mat = Material.Dielectric(1.5)
+        local emitted = mat:emitted()
+        
+        return emitted.x, emitted.y, emitted.z
+    )");
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    auto [x, y, z] = result.get<std::tuple<double, double, double>>();
+    ASSERT_EQ(x, 0.0);
+    ASSERT_EQ(y, 0.0);
+    ASSERT_EQ(z, 0.0);
+}
