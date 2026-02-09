@@ -36,7 +36,8 @@ void bind_common_types(sol::state& lua) {
         "clear", &AppData::clear,
         "set_string", &AppData::set_string,
         "get_string", &AppData::get_string,
-        "has_string", &AppData::has_string
+        "has_string", &AppData::has_string,
+        "pop_next_index", &AppData::pop_next_index
     );
 }
 

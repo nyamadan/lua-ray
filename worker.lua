@@ -4,7 +4,7 @@
 -- _app_data, _scene, _bounds, _scene_type, _thread_id are injected by C++
 
 local BlockUtils = require("lib.BlockUtils")
-local json = require("lib.json")
+
 
 local scene_module = require("scenes." .. _scene_type)
 
@@ -16,30 +16,24 @@ else
     error("Scene module " .. _scene_type .. " does not have a start function")
 end
 
--- ブロックリストを取得（AppDataからJSONでデシリアライズ）
-local blocks_key = "worker_blocks_" .. _thread_id
-local blocks_json = _app_data:get_string(blocks_key)
-local blocks = {}
-
-if blocks_json and blocks_json ~= "" then
-    blocks = json.decode(blocks_json)
-else
-    -- フォールバック: 従来の_boundsを使用
-    blocks = {{
-        x = _bounds.x,
-        y = _bounds.y,
-        w = _bounds.w,
-        h = _bounds.h
-    }}
-end
+-- 共有キューのキー設定
+local queue_key = "render_queue"
+local index_key = "render_queue_idx"
 
 -- 動的キャンセルチェック用の変数
 local time_avg = BlockUtils.MovingAverage.new(0.1) -- alpha=0.1 (指数移動平均)
 local CHECK_INTERVAL_MS = 12 -- 12ms間隔でキャンセルチェック
 local estimated_time = 0
 
--- 各ブロックを順次処理
-for _, block in ipairs(blocks) do
+while true do
+    -- 次のブロックを取得
+    local block = BlockUtils.pull_next_block(_app_data, queue_key, index_key)
+    
+    -- ブロックが無ければ終了
+    if not block then
+        break
+    end
+
     local x_start = block.x
     local x_end = block.x + block.w - 1
     local y_start = block.y

@@ -188,3 +188,48 @@ TEST_F(AppDataTest, OverwriteExistingString) {
     EXPECT_EQ(data.get_string("key"), "value2");
 }
 
+// ========================================
+// pop_next_index テスト（TDD Red Phase）
+// ========================================
+
+// テスト: 初期値0から開始
+TEST_F(AppDataTest, PopNextIndexStartsFromZero) {
+    AppData data(10, 10);
+    
+    // 最初の呼び出しは0を返す
+    int index = data.pop_next_index("counter");
+    EXPECT_EQ(index, 0);
+}
+
+// テスト: 連続呼び出しでインクリメント
+TEST_F(AppDataTest, PopNextIndexIncrementsEachCall) {
+    AppData data(10, 10);
+    
+    EXPECT_EQ(data.pop_next_index("counter"), 0);
+    EXPECT_EQ(data.pop_next_index("counter"), 1);
+    EXPECT_EQ(data.pop_next_index("counter"), 2);
+    EXPECT_EQ(data.pop_next_index("counter"), 3);
+}
+
+// テスト: 異なるキーは独立してインクリメント
+TEST_F(AppDataTest, PopNextIndexDifferentKeysAreIndependent) {
+    AppData data(10, 10);
+    
+    EXPECT_EQ(data.pop_next_index("key_a"), 0);
+    EXPECT_EQ(data.pop_next_index("key_b"), 0);
+    EXPECT_EQ(data.pop_next_index("key_a"), 1);
+    EXPECT_EQ(data.pop_next_index("key_b"), 1);
+}
+
+// テスト: set_stringで事前設定された値から開始
+TEST_F(AppDataTest, PopNextIndexRespectsPresetValue) {
+    AppData data(10, 10);
+    
+    // 事前に値を設定
+    data.set_string("preset_counter", "10");
+    
+    // 10から開始してインクリメント
+    EXPECT_EQ(data.pop_next_index("preset_counter"), 10);
+    EXPECT_EQ(data.pop_next_index("preset_counter"), 11);
+}
+

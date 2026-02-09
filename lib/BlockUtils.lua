@@ -1,6 +1,8 @@
 -- BlockUtils.lua
 -- ブロック分割と移動平均計算のユーティリティモジュール
 
+local json = require("lib.json")
+
 local BlockUtils = {}
 
 -- ========================================
@@ -134,6 +136,49 @@ function BlockUtils.shuffle_blocks(blocks, seed)
     end
     
     return shuffled
+end
+
+-- ========================================
+-- 共有キュー（排他的pull方式）
+-- ========================================
+
+--- 共有ブロックキューをセットアップする
+--- ブロック配列をJSONでAppDataに保存し、インデックスを0に初期化
+--- @param app_data userdata AppDataインスタンス
+--- @param blocks table ブロックの配列
+--- @param queue_key string キュー（ブロック配列）のキー
+--- @param index_key string|nil インデックスのキー（省略時はqueue_key.."_idx"）
+function BlockUtils.setup_shared_queue(app_data, blocks, queue_key, index_key)
+    index_key = index_key or (queue_key .. "_idx")
+    
+    -- ブロック配列をJSONで保存
+    app_data:set_string(queue_key, json.encode(blocks))
+    -- インデックスを0にリセット
+    app_data:set_string(index_key, "0")
+end
+
+--- 共有キューから次のブロックを排他的に取得する
+--- @param app_data userdata AppDataインスタンス
+--- @param queue_key string キュー（ブロック配列）のキー
+--- @param index_key string|nil インデックスのキー（省略時はqueue_key.."_idx"）
+--- @return table|nil ブロック情報、無ければnil
+function BlockUtils.pull_next_block(app_data, queue_key, index_key)
+    index_key = index_key or (queue_key .. "_idx")
+    
+    -- インデックスを排他的に取得してインクリメント
+    local index = app_data:pop_next_index(index_key)
+    
+    -- ブロック配列を取得（キャッシュを考慮するなら改善の余地あり）
+    local queue_json = app_data:get_string(queue_key)
+    if not queue_json or queue_json == "" then
+        return nil
+    end
+    
+    local blocks = json.decode(queue_json)
+    
+    -- Luaは1-indexedなので+1
+    local block = blocks[index + 1]
+    return block
 end
 
 return BlockUtils

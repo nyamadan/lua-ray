@@ -79,6 +79,19 @@ public:
         return m_string_storage.find(key) != m_string_storage.end();
     }
 
+    // 指定キーのカウンタをアトミックにインクリメントし、前の値を返す
+    // スレッド間で排他的にインデックスを取得するために使用
+    int pop_next_index(const std::string& key) {
+        std::lock_guard<std::mutex> lock(m_string_mutex);
+        auto it = m_string_storage.find(key);
+        int current = 0;
+        if (it != m_string_storage.end()) {
+            current = std::stoi(it->second);
+        }
+        m_string_storage[key] = std::to_string(current + 1);
+        return current;
+    }
+
 private:
     int m_width;
     int m_height;
