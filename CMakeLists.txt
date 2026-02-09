@@ -280,5 +280,5 @@ if(NOT EMSCRIPTEN)
     target_include_directories(lua-ray-tests PRIVATE src)
     # SDL3 headers are required by context.h, so link the static SDL3 library
     target_link_libraries(lua-ray-tests PRIVATE gtest_main lua embree lbuffer sol2 imgui SDL3::SDL3-static)
-    add_test(NAME lua-ray-tests COMMAND lua-ray-tests)
+    add_test(NAME lua-ray-tests COMMAND lua-ray-tests WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 endif()

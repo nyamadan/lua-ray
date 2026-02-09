@@ -241,33 +241,23 @@ function RayTracer:start_render_threads()
     
     -- ブロック単位で画面を分割
     local blocks = BlockUtils.generate_blocks(
-        self.width, self.height, self.BLOCK_SIZE, self.NUM_THREADS
+        self.width, self.height, self.BLOCK_SIZE, 1 -- スレッド数は分割には無関係なので1
     )
     
     -- ブロックをシャッフルしてランダム順序にする
     blocks = BlockUtils.shuffle_blocks(blocks)
     
-    -- スレッドIDごとにブロックをグループ化
-    local groups = BlockUtils.group_blocks_by_thread(blocks, self.NUM_THREADS)
-    
-    -- 各スレッドに対してワーカーを起動（NUM_THREADS個のみ）
-    for thread_id = 0, self.NUM_THREADS - 1 do
-        local thread_blocks = groups[thread_id]
-        if #thread_blocks > 0 then
-            -- ブロックリストをJSONでAppDataに保存
-            local blocks_key = "worker_blocks_" .. thread_id
-            self.data:set_string(blocks_key, json.encode(thread_blocks))
-            
-            -- 最初のブロックをboundsとして渡す（後方互換用）
-            local first_block = thread_blocks[1]
-            local worker = ThreadWorker.create(
-                self.data, self.scene,
-                first_block.x, first_block.y, first_block.w, first_block.h,
-                thread_id
-            )
-            worker:start("worker.lua", self.current_scene_type)
-            table.insert(self.workers, worker)
-        end
+    -- 共有キューをセットアップ
+    BlockUtils.setup_shared_queue(self.data, blocks, "render_queue")
+
+    -- ワーカーを作成して開始
+    for i = 0, self.NUM_THREADS - 1 do
+        -- Boundsは使用しないが、一応画面全体を渡しておく
+        local worker = ThreadWorker.create(self.data, self.scene, 0, 0, self.width, self.height, i)
+        
+        -- ワーカー開始 (ブロック情報は共有キューから取得するため個別設定不要)
+        worker:start("worker.lua", self.current_scene_type)
+        table.insert(self.workers, worker)
     end
 end
 
@@ -430,33 +420,23 @@ function RayTracer:start_posteffect_threads()
     
     -- ブロック単位で画面を分割
     local blocks = BlockUtils.generate_blocks(
-        self.width, self.height, self.BLOCK_SIZE, self.NUM_THREADS
+        self.width, self.height, self.BLOCK_SIZE, 1 -- スレッド数無関係
     )
     
     -- ブロックをシャッフルしてランダム順序にする
     blocks = BlockUtils.shuffle_blocks(blocks)
     
-    -- スレッドIDごとにブロックをグループ化
-    local groups = BlockUtils.group_blocks_by_thread(blocks, self.NUM_THREADS)
+    -- 共有キューをセットアップ
+    BlockUtils.setup_shared_queue(self.data, blocks, "posteffect_queue")
     
-    -- 各スレッドに対してワーカーを起動（NUM_THREADS個のみ）
-    for thread_id = 0, self.NUM_THREADS - 1 do
-        local thread_blocks = groups[thread_id]
-        if #thread_blocks > 0 then
-            -- ブロックリストをJSONでAppDataに保存
-            local blocks_key = "posteffect_blocks_" .. thread_id
-            self.data:set_string(blocks_key, json.encode(thread_blocks))
-            
-            -- 最初のブロックをboundsとして渡す
-            local first_block = thread_blocks[1]
-            local worker = ThreadWorker.create(
-                self.data, self.scene,
-                first_block.x, first_block.y, first_block.w, first_block.h,
-                thread_id
-            )
-            worker:start("posteffect_worker.lua", self.current_scene_type)
-            table.insert(self.posteffect_workers, worker)
-        end
+    -- 各スレッドに対してワーカーを起動
+    for i = 0, self.NUM_THREADS - 1 do
+        -- Boundsは使用しないが画面全体を渡す
+        local worker = ThreadWorker.create(
+            self.data, self.scene, 0, 0, self.width, self.height, i
+        )
+        worker:start("posteffect_worker.lua", self.current_scene_type)
+        table.insert(self.posteffect_workers, worker)
     end
 end
 

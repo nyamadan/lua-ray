@@ -3,15 +3,17 @@
 
 #include <gtest/gtest.h>
 #include <sol/sol.hpp>
+#include "../src/app_data.h"
 
 class BlockUtilsTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::table);
+        lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::table, sol::lib::os, sol::lib::string);
         
-        // Luaパスを設定（ビルドディレクトリからの相対パス）
-        // gcc-debug/lua-ray-tests.exe から見たパス
-        lua.script("package.path = package.path .. ';./lib/?.lua;../../lib/?.lua;../../?.lua'");
+        // プロジェクトルートから実行されることを前提に、シンプルにパスを追加
+        // BlockUtils.lua は require("lib.json") を行う
+        // ./?.lua により lib/json.lua が見つかるはず
+        lua.script("package.path = './?.lua;' .. package.path");
     }
 
     sol::state lua;
@@ -279,4 +281,121 @@ TEST_F(BlockUtilsTest, ShuffleBlocksDoesNotModifyOriginal) {
     
     ASSERT_EQ(original_x, after_x);
     ASSERT_EQ(original_y, after_y);
+}
+
+// ========================================
+// 共有キュー関連 テスト（TDD Red Phase）
+// ========================================
+
+// 注: これらのテストはAppDataモックを使用するため、
+// Lua単体ではなくapp_dataを注入してテストする必要がある
+
+// テスト13: setup_shared_queue がブロック配列をJSONで保存
+TEST_F(BlockUtilsTest, SetupSharedQueueStoresBlocksAsJson) {
+    // AppDataモックのバインディング
+    lua.new_usertype<AppData>("MockAppData",
+        "set_string", &AppData::set_string,
+        "get_string", &AppData::get_string,
+        "pop_next_index", &AppData::pop_next_index
+    );
+    
+    AppData data(100, 100);
+    lua["app_data"] = &data;
+    
+    lua.script(R"(
+        local BlockUtils = require("lib.BlockUtils")
+        local json = require("lib.json")
+        
+        local blocks = {
+            {x = 0, y = 0, w = 64, h = 64},
+            {x = 64, y = 0, w = 36, h = 64}
+        }
+        
+        BlockUtils.setup_shared_queue(app_data, blocks, "test_queue")
+        
+        -- 保存されたデータを確認
+        stored_json = app_data:get_string("test_queue")
+        stored_blocks = json.decode(stored_json)
+    )");
+    
+    sol::table stored_blocks = lua["stored_blocks"];
+    ASSERT_EQ(stored_blocks.size(), 2);
+    
+    sol::table first = stored_blocks[1];
+    ASSERT_EQ(first["x"].get<int>(), 0);
+    ASSERT_EQ(first["y"].get<int>(), 0);
+}
+
+// テスト14: pull_next_block が順番にブロックを返す
+TEST_F(BlockUtilsTest, PullNextBlockReturnsBlocksInOrder) {
+    lua.new_usertype<AppData>("MockAppData",
+        "set_string", &AppData::set_string,
+        "get_string", &AppData::get_string,
+        "pop_next_index", &AppData::pop_next_index
+    );
+    
+    AppData data(100, 100);
+    lua["app_data"] = &data;
+    
+    lua.script(R"(
+        local BlockUtils = require("lib.BlockUtils")
+        
+        local blocks = {
+            {x = 0, y = 0, w = 64, h = 64},
+            {x = 64, y = 0, w = 36, h = 64},
+            {x = 0, y = 64, w = 64, h = 36}
+        }
+        
+        BlockUtils.setup_shared_queue(app_data, blocks, "queue", "queue_idx")
+        
+        -- 順番にpull
+        block1 = BlockUtils.pull_next_block(app_data, "queue", "queue_idx")
+        block2 = BlockUtils.pull_next_block(app_data, "queue", "queue_idx")
+        block3 = BlockUtils.pull_next_block(app_data, "queue", "queue_idx")
+    )");
+    
+    sol::table block1 = lua["block1"];
+    sol::table block2 = lua["block2"];
+    sol::table block3 = lua["block3"];
+    
+    ASSERT_EQ(block1["x"].get<int>(), 0);
+    ASSERT_EQ(block2["x"].get<int>(), 64);
+    ASSERT_EQ(block3["x"].get<int>(), 0);
+    ASSERT_EQ(block3["y"].get<int>(), 64);
+}
+
+// テスト15: pull_next_block がキュー末尾でnilを返す
+TEST_F(BlockUtilsTest, PullNextBlockReturnsNilWhenEmpty) {
+    lua.new_usertype<AppData>("MockAppData",
+        "set_string", &AppData::set_string,
+        "get_string", &AppData::get_string,
+        "pop_next_index", &AppData::pop_next_index
+    );
+    
+    AppData data(100, 100);
+    lua["app_data"] = &data;
+    
+    lua.script(R"(
+        local BlockUtils = require("lib.BlockUtils")
+        
+        local blocks = {
+            {x = 0, y = 0, w = 64, h = 64}
+        }
+        
+        BlockUtils.setup_shared_queue(app_data, blocks, "queue2", "queue2_idx")
+        
+        -- 1つ目は取得できる
+        block1 = BlockUtils.pull_next_block(app_data, "queue2", "queue2_idx")
+        -- 2つ目はnil
+        block2 = BlockUtils.pull_next_block(app_data, "queue2", "queue2_idx")
+        
+        is_block1_valid = block1 ~= nil
+        is_block2_nil = block2 == nil
+    )");
+    
+    bool is_block1_valid = lua["is_block1_valid"];
+    bool is_block2_nil = lua["is_block2_nil"];
+    
+    ASSERT_TRUE(is_block1_valid);
+    ASSERT_TRUE(is_block2_nil);
 }
