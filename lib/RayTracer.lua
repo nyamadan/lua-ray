@@ -256,7 +256,7 @@ function RayTracer:start_render_threads()
         local worker = ThreadWorker.create(self.data, self.scene, 0, 0, self.width, self.height, i)
         
         -- ワーカー開始 (ブロック情報は共有キューから取得するため個別設定不要)
-        worker:start("worker.lua", self.current_scene_type)
+        worker:start("workers/ray_worker.lua", self.current_scene_type)
         table.insert(self.workers, worker)
     end
 end
@@ -435,7 +435,7 @@ function RayTracer:start_posteffect_threads()
         local worker = ThreadWorker.create(
             self.data, self.scene, 0, 0, self.width, self.height, i
         )
-        worker:start("posteffect_worker.lua", self.current_scene_type)
+        worker:start("workers/posteffect_worker.lua", self.current_scene_type)
         table.insert(self.posteffect_workers, worker)
     end
 end
