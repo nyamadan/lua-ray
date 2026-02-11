@@ -69,6 +69,8 @@
 - **特定のテストの実行**:
   ```bash
   ctest --preset gcc-debug -R <test_name>
+  # 例: ワーカー関連のテストのみ実行
+  ctest --preset gcc-debug -R worker
   ```
 - **デバッグビルド**:
   ```bash

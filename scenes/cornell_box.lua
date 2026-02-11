@@ -1,5 +1,6 @@
 -- scenes/cornell_box.lua
 -- edupt の Cornell Box シーンを Lua で再現
+-- original: https://github.com/githole/edupt
 
 local M = {}
 

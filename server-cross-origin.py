@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 import sys
-import signal
+import os
 import socketserver
-import threading
 from http.server import SimpleHTTPRequestHandler
 
 class Handler(SimpleHTTPRequestHandler):
@@ -27,25 +26,24 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def run_server(host="localhost", port=8000):
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(script_dir)
+
     url = f"http://{host}:{port}"
+    socketserver.TCPServer.allow_reuse_address = True
+
     with socketserver.TCPServer((host, port), Handler) as httpd:
         print(f"Server running at {url}")
-
-        # SIGTERM/SIGINT を受けたら shutdown を呼ぶ
-        def handle_signal(signum, frame):
-            print(f"Received signal {signum}, shutting down...")
-            # shutdown() は別スレッドから呼ぶ必要がある
-            threading.Thread(target=httpd.shutdown).start()
-
-        signal.signal(signal.SIGTERM, handle_signal)
-        signal.signal(signal.SIGINT, handle_signal)
+        print(f"Serving directory: {script_dir}")
+        print("Press Ctrl+C to stop.")
 
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
-            # 念のため KeyboardInterrupt でも終了
+            print("\nShutting down server...")
             httpd.shutdown()
-
+            httpd.server_close()
+            sys.exit(0)
 
 if __name__ == "__main__":
     port_arg = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
