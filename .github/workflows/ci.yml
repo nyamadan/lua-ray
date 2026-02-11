@@ -126,7 +126,7 @@ jobs:
           mkdir -p artifacts/win32
           cp build/win32-release/lua-ray.exe artifacts/win32/
           cp main.lua artifacts/win32/
-          cp worker.lua artifacts/win32/
+          cp -r workers artifacts/win32/
           cp -r lib artifacts/win32/
           cp -r scenes artifacts/win32/
 
