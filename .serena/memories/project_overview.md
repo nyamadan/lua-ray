@@ -20,11 +20,21 @@
 - `src/`: ソースコードディレクトリ
   - `main.cpp`: アプリケーションのエントリーポイント
   - `app.cpp`, `app.h`: アプリケーションのメインロジック
+  - `app_data.h`: アプリケーションデータ構造定義
   - `lua_binding.cpp`, `lua_binding.h`: Lua統合とバインディング
+  - `imgui_lua_binding.cpp`, `imgui_lua_binding.h`: ImGuiのLuaバインディング
   - `embree_wrapper.cpp`, `embree_wrapper.h`: Embreeレイトレーシングのラッパー
+  - `thread_worker.cpp`, `thread_worker.h`: スレッドワーカーの実装
   - `context.h`: アプリケーションコンテキスト定義
+- `workers/`: Luaワーカースクリプト
+  - `ray_worker.lua`: レイトレーシング計算用ワーカー
+  - `posteffect_worker.lua`: ポストエフェクト処理用ワーカー
+  - `worker_utils.lua`: ワーカー用ユーティリティ関数
 - `test/`: テストファイルディレクトリ
   - `lua_binding_test.cpp`: Luaバインディングのユニットテスト
+  - `thread_worker_test.cpp`: スレッドワーカーのテスト
+  - `worker_utils_test.cpp`: ワーカーユーティリティのテスト
+  - `block_utils_test.cpp`: ブロック管理のテスト
   - `lbuffer_test.cpp`: lbufferライブラリのテスト
   - `sol2_test.cpp`: sol2統合のテスト
   - `embree_link_test.cpp`: Embreeリンクのテスト

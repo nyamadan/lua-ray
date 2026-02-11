@@ -1,5 +1,6 @@
 -- scenes/raytracing_weekend.lua
--- Ray Tracing in One Weekend の最終シーン
+-- Ray Tracing in One Weekend
+-- original: https://github.com/RayTracing/raytracing.github.io
 
 local M = {}
 

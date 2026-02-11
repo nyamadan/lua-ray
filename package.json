@@ -4,7 +4,7 @@
   "description": "lua ray",
   "keywords": [],
   "author": "Yoshiki YAMADA <nyamadandan@gmail.com>",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "private": true,
   "packageManager": "pnpm@10.28.1",
   "scripts": {
