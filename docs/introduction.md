@@ -61,16 +61,19 @@
 
     ```lua
     -- シーンスクリプトの例（scenes/example.lua）
+    local M = {}
+    local scene = nil
 
     -- setup: メインスレッドで1回だけ実行
-    function scene.setup(scene_obj, app_data)
+    function M.setup(scene_obj, app_data)
         -- ジオメトリの追加やBVHの構築など
         scene_obj:add_sphere(0, 0, -5, 1) 
         scene_obj:commit()
     end
 
     -- start: 各ワーカースレッドの開始時に実行
-    function scene.start(scene_obj, app_data)
+    function M.start(scene_obj, app_data)
+        scene = scene_obj -- スレッドローカルな変数に保存
         -- カメラの初期化やスレッドローカルな変数の準備
         local width = app_data:width()
         local height = app_data:height()
@@ -78,15 +81,49 @@
     end
 
     -- shade: 各ピクセルごとの処理（並列実行）
-    function scene.shade(app_data, x, y)
+    function M.shade(app_data, x, y)
         local ray = generate_camera_ray(x, y)
-        local hit = scene_obj:intersect(ray)
+        local hit = scene:intersect(ray)
         if hit then
             app_data:set_pixel(x, y, 255, 255, 255) -- 白
         else
             app_data:set_pixel(x, y, 0, 0, 0) -- 黒
         end
     end
+    
+    return M
+    ```
+
+*   **JSONシリアライズによる堅牢なマテリアルコピー**:
+    *   本プロジェクトでは、マルチスレッド環境を実現するために **各ワーカースレッドごとに独立した Lua State (メモリ空間)** を持たせています。そのため、Luaのテーブルなどのデータ構造をそのままスレッド間で共有・コピーすることはできません。
+    *   この問題を解決するため、`setup` (メインスレッド) で定義されたマテリアルやオブジェクトデータを一度 **JSON 文字列にシリアライズ** し、それを `start` (各ワーカースレッド) で受け取ってデシリアライズすることで、データの複製を実現しています。
+    *   この手法により、複雑な Lua テーブルの「完全なディープコピー」をシンプルかつ確実に実現しています。参照共有によるデータ競合や副作用を根本から排除し、非常に高い安定性を確保しています。また、この処理は初期化フェーズでのみ行われるため、レンダリングパフォーマンスへの影響はありません。
+
+    ```lua
+
+    -- メインスレッド (M.setup 内)
+    -- マテリアル定義を含むテーブルを作成
+    local material_data = {
+        ["metal"] = { type = "lambertian", albedo = {0.8, 0.8, 0.8} },
+        ["glass"] = { type = "dielectric", ref_idx = 1.5 }
+    }
+    
+    -- JSONにシリアライズして app_data に保存
+    -- これにより、メインスレッドからワーカースレッドへ文字列としてデータを受け渡す
+    local json = require("lib.json")
+    local json_str = json.encode(material_data)
+    app_data:set_string("materials", json_str)
+
+    -- ワーカースレッド (M.start 内)
+    -- app_data から JSON 文字列を取得してデシリアライズ
+    local json = require("lib.json")
+    local json_str = app_data:get_string("materials")
+    if json_str and json_str ~= "" then
+        M.materials = json.decode(json_str)
+    end
+    
+    -- 各ワーカーは独立したメモリ空間上の materials テーブルを参照する
+    local mat = M.materials["metal"] 
     ```
 
 ### 3. WebAssembly (WASM) 対応
@@ -98,9 +135,6 @@
 
 *   **Embree の WASM ビルド**:
     *   本来は高度な SIMD 命令（AVXなど）を多用する Intel Embree ライブラリを、WebAssembly 環境向けにビルドして統合しています。これにより、Web 上でも高品質なレイトレーシングアクセラレーションを利用可能にしています。
-
-*   **WASM SIMD (128-bit) の活用**:
-    *   Emscripten のビルド設定において **`-msse` `-msse2`** オプションを指定することで、SIMD命令を **WebAssembly SIMD128** にマップしています。これにより、ベクトル計算を多用するレイトレーシング処理をブラウザ上でも高速に実行可能です。
 
 *   **Web Workers**:
     *   ブラウザ上でも `pthread` の代わりに Web Workers を用いたマルチスレッドレンダリングを実現しており、UI をフリーズさせることなく重い計算を実行可能です。
