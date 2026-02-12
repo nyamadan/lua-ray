@@ -9,7 +9,7 @@
 - [プロジェクト構造](#プロジェクト構造)
 - [前提条件](#前提条件)
 - [ビルドと実行](#ビルドと実行)
-  - [ネイティブ (Windows/Linux/macOS)](#ネイティブ-windowslinuxmacos)
+  - [ネイティブ (Windows(MinGW)/Linux)](#ネイティブ-windowsmingwlinux)
   - [WebAssembly (Web)](#webassembly-web)
 - [テスト](#テスト)
 - [ライセンス](#ライセンス)
@@ -49,9 +49,9 @@ lua-ray/
 
 ## 前提条件
 
-- **C++ コンパイラ**: GCC, Clang, または MSVC (C++17 対応)
+- **C++ コンパイラ**: GCC (C++17 対応)
 - **CMake**: 3.20 以上
-- **Node.js**: v18 以上 (WebAssembly ビルドおよび依存管理用)
+- **Node.js** (WebAssembly ビルドおよび依存管理用)
 - **pnpm**: パッケージマネージャー
 
 ## ビルドと実行
@@ -61,18 +61,15 @@ lua-ray/
 pnpm install
 ```
 
-### ネイティブ (Windows/Linux/macOS)
+### ネイティブ (Windows(MinGW)/Linux)
 
-GCC/Clang (Debug):
+GCC (Debug):
 ```bash
 cmake --build --preset gcc-debug
 ./build/gcc-debug/lua-ray
 ```
 
-Windows (MSVC):
-```bash
-cmake --build --preset win32-release
-```
+
 
 ### WebAssembly (Web)
 
