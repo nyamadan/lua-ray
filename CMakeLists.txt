@@ -34,10 +34,18 @@ endif()
 # ---------------------------------------------------------
 if(EMSCRIPTEN)
     add_compile_options(
+        "-fexceptions"
         "-pthread"
+        "-msse"
+        "-msse2"
+        "-mrelaxed-simd"
     )
     add_link_options(
+        "-fexceptions"
         "-pthread"
+        "-msse"
+        "-msse2"
+        "-mrelaxed-simd"
     )
 endif()
 
@@ -193,18 +201,14 @@ add_executable(lua-ray ${SOURCES})
 # Emscripten固有の設定
 if(EMSCRIPTEN)
     set_target_properties(lua-ray PROPERTIES SUFFIX ".html")
-    target_compile_options(lua-ray PRIVATE "-fexceptions")
 
     target_link_options(lua-ray PRIVATE
-        "-fexceptions"
         "-sDISABLE_EXCEPTION_CATCHING=0"
         "-sUSE_SDL=0"
         "-sALLOW_MEMORY_GROWTH=1"
         "-sINITIAL_MEMORY=1GB"
         "-sMAXIMUM_MEMORY=2GB"
         "-sPTHREAD_POOL_SIZE=8"
-        "-msse"
-        "-msse2"
         # Bundle all lua scripts and scenes
         "SHELL:--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/main.lua@/main.lua"
         "SHELL:--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/workers@/workers"
@@ -236,28 +240,7 @@ if(NOT EMSCRIPTEN)
     FetchContent_MakeAvailable(googletest)
 
     # Unit Tests
-    add_executable(lua-ray-tests
-        test/lua_binding_test.cpp
-        test/sol2_test.cpp
-        test/imgui_test.cpp
-        test/app_data_test.cpp
-        test/ray_tracer_test.cpp
-        test/camera_test.cpp
-        test/vec3_test.cpp
-        test/ray_test.cpp
-        test/material_test.cpp
-        test/bilateral_filter_test.cpp
-        test/pathtracer_test.cpp
-        test/thread_worker_test.cpp
-        test/block_utils_test.cpp
-        test/worker_utils_test.cpp
-        test/resolution_presets_test.cpp
-        src/lua_binding.cpp
-        src/imgui_lua_binding.cpp
-        src/embree_wrapper.cpp
-        src/thread_worker.cpp
-        src/app.cpp
-    )
+    add_executable(lua-ray-tests test/lua_binding_test.cpp test/sol2_test.cpp test/imgui_test.cpp test/app_data_test.cpp test/ray_tracer_test.cpp test/camera_test.cpp test/vec3_test.cpp test/ray_test.cpp test/material_test.cpp test/bilateral_filter_test.cpp test/pathtracer_test.cpp test/thread_worker_test.cpp test/block_utils_test.cpp test/worker_utils_test.cpp test/resolution_presets_test.cpp src/lua_binding.cpp src/imgui_lua_binding.cpp src/embree_wrapper.cpp src/thread_worker.cpp src/app.cpp)
     target_include_directories(lua-ray-tests PRIVATE src)
     # SDL3 headers are required by context.h, so link the static SDL3 library
     target_link_libraries(lua-ray-tests PRIVATE gtest_main lua embree sol2 imgui SDL3::SDL3-static)
