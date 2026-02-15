@@ -185,6 +185,45 @@ function RayTracer:reset_scene(scene_type, force_reload)
     self:render()
 end
 
+-- ワーカーのみをソフトリセット（setup/cleanupは呼ばない、テクスチャクリアなし）
+-- stop → start を呼び直し、レンダリングブロックを再作成してレンダリングを再開する
+function RayTracer:reset_workers()
+    print("Resetting workers...")
+    
+    -- 実行中のワーカーを安全に停止（マルチスレッド時はワーカー内でstopが呼ばれる）
+    self:terminate_workers()
+    
+    -- シングルスレッドのコルーチンを停止
+    if self.render_coroutine or self.posteffect_coroutine then
+        -- シングルスレッド時はメインスレッドでstopを呼ぶ
+        if self.current_scene_module and self.current_scene_module.stop then
+            self.current_scene_module.stop(self.scene)
+        end
+    end
+    self.render_coroutine = nil
+    self.posteffect_coroutine = nil
+    
+    -- start を呼び直す（カメラやローカル状態の再初期化）
+    if self.current_scene_module and self.current_scene_module.start then
+        self.current_scene_module.start(self.scene, self.data)
+    end
+    
+    -- レンダリングを再開（ブロック再作成含む、テクスチャクリアなし）
+    self:render_without_clear()
+end
+
+-- テクスチャクリアなしでレンダリングを開始
+function RayTracer:render_without_clear()
+    print("Starting render (without clear)...")
+    self.render_start_time = app.get_ticks()
+    
+    if self.use_multithreading then
+        self:start_render_threads()
+    else
+        self.render_coroutine = self:create_render_coroutine()
+    end
+end
+
 function RayTracer:init_scene()
     self:reset_scene(self.current_scene_type)
 end
@@ -598,6 +637,13 @@ function RayTracer:on_ui()
             self:cancel_if_rendering()
             print("Reloading scene module and re-rendering")
             self:reset_scene(self.current_scene_type, true) -- force_reload = true
+        end
+        
+        ImGui.SameLine()
+        
+        if ImGui.Button("Reset Workers") then
+            self:cancel_if_rendering()
+            self:reset_workers()
         end
         
         ImGui.Separator()

@@ -20,6 +20,7 @@ void ThreadWorker::start(const std::string& script_path, const std::string& scen
         m_thread.join(); // Ensure previous run is finished
     }
     m_done = false;
+    m_cancel_requested = false;
     m_progress = 0.0f;
     m_thread = std::thread(&ThreadWorker::thread_func, this, script_path, scene_type);
 }

@@ -5,7 +5,8 @@ function test_lifecycle.setup(scene, app_data)
 end
 
 function test_lifecycle.start(scene, app_data)
-    -- Do nothing
+    io.write("start called\n")
+    io.flush()
 end
 
 function test_lifecycle.shade(app_data, x, y)
