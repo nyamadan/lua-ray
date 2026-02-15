@@ -198,3 +198,80 @@ TEST_F(RayTracerTest, AutoCancelOnUIOperation) {
     bool cancel_was_called = result;
     ASSERT_TRUE(cancel_was_called) << "cancel() should be called when UI operation occurs during rendering";
 }
+
+// テスト: Single-threaded rendering check interval (Time-based yielding)
+// 現状の実装は100ピクセルごとのチェックだが、時間経過でチェックするように変更するため、
+// 100ピクセル未満でも時間が経過していればyieldすることを検証する
+TEST_F(RayTracerTest, SingleThreadedCheckInterval) {
+    // モックapp関数
+    lua.script(R"(
+        app.init_video = function() return true end
+        app.create_window = function(w, h, title) return "mock_window" end
+        app.create_renderer = function(win) return "mock_renderer" end
+        app.create_texture = function(r, w, h) return "mock_texture" end
+        app.configure = function(config) end
+        app.destroy_texture = function(tex) end
+        app.update_texture = function(tex, data) end
+        app.update_texture_from_back = function(tex, data) end
+        
+        -- アプリ時間のモック
+        -- 初期値 0
+        -- get_ticksが呼ばれるたびに時間を進めるわけではなく、外部から制御可能にする
+        _G.current_time = 0
+        app.get_ticks = function() return _G.current_time end
+    )");
+
+    auto result = lua.safe_script(R"(
+        local RayTracer = require('lib.RayTracer')
+        local rt = RayTracer.new(100, 100) -- 小さいサイズ
+        rt:init()
+        
+        -- シーン設定 (shade関数が呼ばれた回数をカウント)
+        -- モックシーンモジュールを作成
+        local mock_scene = {}
+        mock_scene.setup = function() end
+        mock_scene.start = function() end
+        mock_scene.shade = function(data, x, y)
+            _G.shade_count = (_G.shade_count or 0) + 1
+            
+            if x == 0 then
+                -- x=0の時は時間を少しだけ進める (1ms)
+                -- これにより x=0 のチェック (x%100==0) をすり抜ける (1ms < 12ms)
+                _G.current_time = _G.current_time + 1
+            else
+                -- x>0の時は時間を大幅に進める (20ms)
+                -- 現行実装では x=1〜99 でチェックしないため、ここまで進んでしまう
+                -- 新実装では時間経過を検知して停止するはず
+                _G.current_time = _G.current_time + 20
+            end
+        end
+        rt.current_scene_module = mock_scene
+        
+        _G.current_time = 1000 -- 開始時間を適当に設定
+        _G.shade_count = 0
+        
+        -- レンダリングコルーチン作成
+        -- create_render_coroutine内部で app.get_ticks() を呼んで start_time を取得するはず
+        rt.render_coroutine = rt:create_render_coroutine()
+        
+        -- コルーチンを1回レジューム (開始)
+        local status = coroutine.status(rt.render_coroutine)
+        if status == "suspended" then
+            coroutine.resume(rt.render_coroutine)
+        end
+        
+        -- 期待値:
+        -- 現行実装(100ピクセルチェック): x=0〜99まで一気に進むので、shade_countは100になる
+        -- 修正後実装(時間チェック): 1ピクセル目で20ms経過して閾値(12ms)を超えるため、即座にyieldするはず
+        
+        return _G.shade_count
+    )");
+    
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    int shade_count = result;
+    
+    // 期待: 数ピクセル (例えば10未満) で yield していること
+    // 現行実装では失敗するはず
+    ASSERT_LT(shade_count, 10) << "Should yield early when rendering is slow (processed " << shade_count << " pixels)";
+}
+
