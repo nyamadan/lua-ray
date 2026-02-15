@@ -49,7 +49,7 @@ float ThreadWorker::get_progress() const {
 
 void ThreadWorker::thread_func(std::string script_path, std::string scene_type) {
     sol::state lua;
-    lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::string, sol::lib::table, sol::lib::coroutine, sol::lib::os);
+    lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::string, sol::lib::table, sol::lib::coroutine, sol::lib::os, sol::lib::io);
 
     // Bind strict subset of functionality
     bind_worker_lua(lua);

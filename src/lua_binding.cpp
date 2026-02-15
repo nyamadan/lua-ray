@@ -68,7 +68,7 @@ void bind_worker_lua(sol::state& lua) {
 }
 
 void bind_lua(sol::state& lua, AppContext& ctx) {
-    lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::string, sol::lib::table, sol::lib::coroutine, sol::lib::os);
+    lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::string, sol::lib::table, sol::lib::coroutine, sol::lib::os, sol::lib::io);
     bind_imgui(lua);
 
     // Create 'app' namespace

@@ -222,6 +222,11 @@ function RayTracer:cancel()
     self:terminate_workers()
     
     -- コルーチンを破棄
+    if self.render_coroutine or self.posteffect_coroutine then
+        if self.current_scene_module and self.current_scene_module.stop then
+            self.current_scene_module.stop(self.scene)
+        end
+    end
     self.render_coroutine = nil
     self.posteffect_coroutine = nil
     
@@ -364,6 +369,11 @@ function RayTracer:update()
                 -- PostEffect無しの場合はswapしてフロントに反映
                 self.data:swap()
                 self:update_texture()
+                
+                -- シーン終了
+                if self.current_scene_module and self.current_scene_module.stop then
+                    self.current_scene_module.stop(self.scene)
+                end
             end
         end
     
@@ -404,6 +414,11 @@ function RayTracer:update()
             print(string.format("PostEffect finished. Time: %d ms", end_time - self.render_start_time))
             self.posteffect_coroutine = nil
             self:update_texture()
+            
+            -- シーン終了
+            if self.current_scene_module and self.current_scene_module.stop then
+                self.current_scene_module.stop(self.scene)
+            end
         end
     end
 end
@@ -550,9 +565,10 @@ function RayTracer:on_ui()
             { id = "materialed_sphere", name = "MatSphere" },
             { id = "posteffect", name = "PostEffect" },
             { id = "material_transfer", name = "MatTransfer" },
+            { id = "gltf_box", name = "GLTF Box" },
+            { id = "test_lifecycle", name = "Test Lifecycle" },
             { id = "raytracing_weekend", name = "RTWeekend" },
             { id = "cornell_box", name = "CornellBox" },
-            { id = "gltf_box", name = "GLTF Box" }
         }
         
         local current_scene_name = "Unknown"
