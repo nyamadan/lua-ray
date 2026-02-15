@@ -184,6 +184,23 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(embree)
 
 # ---------------------------------------------------------
+# cgltf (ヘッダーオンリー glTF 2.0 パーサー)
+# ---------------------------------------------------------
+FetchContent_Declare(
+    cgltf
+    GIT_REPOSITORY https://github.com/jkuhlmann/cgltf.git
+    GIT_TAG v1.15
+    GIT_SHALLOW TRUE
+    EXCLUDE_FROM_ALL
+)
+FetchContent_GetProperties(cgltf)
+if(NOT cgltf_POPULATED)
+    FetchContent_Populate(cgltf)
+    add_library(cgltf INTERFACE)
+    target_include_directories(cgltf INTERFACE ${cgltf_SOURCE_DIR})
+endif()
+
+# ---------------------------------------------------------
 # Main executable
 # ---------------------------------------------------------
 # Gather source files
@@ -194,6 +211,7 @@ set(SOURCES
     src/imgui_lua_binding.cpp
     src/embree_wrapper.cpp
     src/thread_worker.cpp
+    src/gltf_loader.cpp
 )
 
 add_executable(lua-ray ${SOURCES})
@@ -212,6 +230,7 @@ if(EMSCRIPTEN)
         # Bundle all lua scripts and scenes
         "SHELL:--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/main.lua@/main.lua"
         "SHELL:--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/workers@/workers"
+        "SHELL:--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/assets@/assets"
         "SHELL:--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/lib@/lib"
         "SHELL:--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/scenes@/scenes"
     )
@@ -223,6 +242,7 @@ target_link_libraries(lua-ray PRIVATE
     embree
     sol2
     imgui
+    cgltf
 )
 
 # ---------------------------------------------------------
@@ -240,9 +260,9 @@ if(NOT EMSCRIPTEN)
     FetchContent_MakeAvailable(googletest)
 
     # Unit Tests
-    add_executable(lua-ray-tests test/lua_binding_test.cpp test/sol2_test.cpp test/imgui_test.cpp test/app_data_test.cpp test/ray_tracer_test.cpp test/camera_test.cpp test/vec3_test.cpp test/ray_test.cpp test/material_test.cpp test/bilateral_filter_test.cpp test/pathtracer_test.cpp test/thread_worker_test.cpp test/block_utils_test.cpp test/worker_utils_test.cpp test/resolution_presets_test.cpp src/lua_binding.cpp src/imgui_lua_binding.cpp src/embree_wrapper.cpp src/thread_worker.cpp src/app.cpp)
+    add_executable(lua-ray-tests test/lua_binding_test.cpp test/sol2_test.cpp test/imgui_test.cpp test/app_data_test.cpp test/ray_tracer_test.cpp test/camera_test.cpp test/vec3_test.cpp test/ray_test.cpp test/material_test.cpp test/bilateral_filter_test.cpp test/pathtracer_test.cpp test/thread_worker_test.cpp test/block_utils_test.cpp test/worker_utils_test.cpp test/resolution_presets_test.cpp test/gltf_loader_test.cpp src/lua_binding.cpp src/imgui_lua_binding.cpp src/embree_wrapper.cpp src/thread_worker.cpp src/app.cpp src/gltf_loader.cpp)
     target_include_directories(lua-ray-tests PRIVATE src)
     # SDL3 headers are required by context.h, so link the static SDL3 library
-    target_link_libraries(lua-ray-tests PRIVATE gtest_main lua embree sol2 imgui SDL3::SDL3-static)
+    target_link_libraries(lua-ray-tests PRIVATE gtest_main lua embree sol2 imgui SDL3::SDL3-static cgltf)
     add_test(NAME lua-ray-tests COMMAND lua-ray-tests WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 endif()

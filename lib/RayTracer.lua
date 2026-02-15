@@ -533,7 +533,8 @@ function RayTracer:on_ui()
             { id = "posteffect", name = "PostEffect" },
             { id = "material_transfer", name = "MatTransfer" },
             { id = "raytracing_weekend", name = "RTWeekend" },
-            { id = "cornell_box", name = "CornellBox" }
+            { id = "cornell_box", name = "CornellBox" },
+            { id = "gltf_box", name = "GLTF Box" }
         }
         
         local current_scene_name = "Unknown"
