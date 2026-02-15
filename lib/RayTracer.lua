@@ -276,23 +276,41 @@ function RayTracer:create_render_coroutine()
         local startTime = app.get_ticks()
         local frameAllowance = 12 -- 12ms
         
+        -- 移動平均初期化
+        local time_avg = BlockUtils.MovingAverage.new(0.1)
+        local estimated_time = 0
+        
         for y = 0, self.height - 1 do
             for x = 0, self.width - 1 do
-                self.current_scene_module.shade(self.data, x, y)
-                
-                -- Check time every 100 pixels to avoid excessive app.get_ticks calls
-                if x % 100 == 0 then
-                     if (app.get_ticks() - startTime) >= frameAllowance then
+                -- 推定時間が閾値を超えたらチェック
+                if estimated_time >= frameAllowance then
+                    if (app.get_ticks() - startTime) >= frameAllowance then
                         coroutine.yield()
                         startTime = app.get_ticks() -- Reset start time for next slice
-                     end
+                    end
+                    estimated_time = 0
                 end
+
+                local pixel_start = app.get_ticks()
+                self.current_scene_module.shade(self.data, x, y)
+                local pixel_end = app.get_ticks()
+                
+                -- 処理時間を計測して移動平均を更新
+                local elapsed = pixel_end - pixel_start
+                if elapsed <= 0 then
+                    elapsed = 0.001
+                end
+                time_avg:update(elapsed)
+                
+                -- 推定時間を更新
+                estimated_time = estimated_time + time_avg:get()
             end
         end
         
-        print(string.format("Single-threaded render finished internally. (Total check in update)"))
+        print(string.format("Single-threaded render finished internally."))
     end)
 end
+
 
 -- 毎フレーム呼ばれる更新処理
 function RayTracer:update()
@@ -533,7 +551,8 @@ function RayTracer:on_ui()
             { id = "posteffect", name = "PostEffect" },
             { id = "material_transfer", name = "MatTransfer" },
             { id = "raytracing_weekend", name = "RTWeekend" },
-            { id = "cornell_box", name = "CornellBox" }
+            { id = "cornell_box", name = "CornellBox" },
+            { id = "gltf_box", name = "GLTF Box" }
         }
         
         local current_scene_name = "Unknown"

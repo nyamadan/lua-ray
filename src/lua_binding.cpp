@@ -2,12 +2,13 @@
 #include "lua_binding.h"
 #include "imgui_lua_binding.h"
 #include "embree_wrapper.h"
+#include "gltf_loader.h"
 #include <iostream>
 #include "app.h"
 #include "app_data.h"
 #include "thread_worker.h"
 
-// Helper to bind common types (AppData, Embree) to any state
+// Helper to bind common types (AppData, Embree, GltfData) to any state
 void bind_common_types(sol::state& lua) {
     // Bind EmbreeDevice
     lua.new_usertype<EmbreeDevice>("EmbreeDevice",
@@ -20,6 +21,7 @@ void bind_common_types(sol::state& lua) {
     lua.new_usertype<EmbreeScene>("EmbreeScene",
         "add_sphere", &EmbreeScene::add_sphere,
         "add_triangle", &EmbreeScene::add_triangle,
+        "add_mesh", &EmbreeScene::add_mesh,
         "commit", &EmbreeScene::commit,
         "intersect", &EmbreeScene::intersect,
         "release", &EmbreeScene::release
@@ -38,6 +40,17 @@ void bind_common_types(sol::state& lua) {
         "get_string", &AppData::get_string,
         "has_string", &AppData::has_string,
         "pop_next_index", &AppData::pop_next_index
+    );
+
+    // Bind GltfData (glTFファイル読み込み)
+    lua.new_usertype<GltfData>("GltfData",
+        sol::constructors<GltfData()>(),
+        "load", &GltfData::load,
+        "is_loaded", &GltfData::isLoaded,
+        "get_mesh_count", &GltfData::getMeshCount,
+        "get_vertices", &GltfData::getVertices,
+        "get_indices", &GltfData::getIndices,
+        "release", &GltfData::release
     );
 }
 

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <limits>
 #include <cmath>
+#include <cstring>
 
 // ----------------------------------------------------------------
 // EmbreeDevice
@@ -90,6 +91,33 @@ unsigned int EmbreeScene::add_triangle(float x1, float y1, float z1, float x2, f
     indices[0] = 0;
     indices[1] = 1;
     indices[2] = 2;
+
+    rtcCommitGeometry(geom);
+    unsigned int geomID = rtcAttachGeometry(scene, geom);
+    rtcReleaseGeometry(geom);
+    return geomID;
+}
+
+unsigned int EmbreeScene::add_mesh(const std::vector<float>& vertices, const std::vector<unsigned int>& indices) {
+    if (!device || !scene) return RTC_INVALID_GEOMETRY_ID;
+    if (vertices.empty() || indices.empty()) return RTC_INVALID_GEOMETRY_ID;
+
+    size_t vertexCount = vertices.size() / 3;
+    size_t triangleCount = indices.size() / 3;
+
+    RTCGeometry geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
+
+    // 頂点バッファを設定
+    float* verts = (float*)rtcSetNewGeometryBuffer(
+        geom, RTC_BUFFER_TYPE_VERTEX, 0,
+        RTC_FORMAT_FLOAT3, 3 * sizeof(float), vertexCount);
+    std::memcpy(verts, vertices.data(), vertices.size() * sizeof(float));
+
+    // インデックスバッファを設定
+    unsigned int* idxs = (unsigned int*)rtcSetNewGeometryBuffer(
+        geom, RTC_BUFFER_TYPE_INDEX, 0,
+        RTC_FORMAT_UINT3, 3 * sizeof(unsigned int), triangleCount);
+    std::memcpy(idxs, indices.data(), indices.size() * sizeof(unsigned int));
 
     rtcCommitGeometry(geom);
     unsigned int geomID = rtcAttachGeometry(scene, geom);
