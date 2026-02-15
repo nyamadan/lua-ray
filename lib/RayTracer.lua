@@ -229,6 +229,14 @@ function RayTracer:cancel()
     -- 例: プログレスバーのリセットなど
 end
 
+-- レンダリング中であればキャンセルする
+function RayTracer:cancel_if_rendering()
+    local is_rendering = (#self.workers > 0) or (self.render_coroutine ~= nil) or (#self.posteffect_workers > 0) or (self.posteffect_coroutine ~= nil)
+    if is_rendering then
+        self:cancel()
+    end
+end
+
 -- スレッドレンダリングを開始（ブロック単位分割、9スレッド制限）
 function RayTracer:start_render_threads()
     local json = require("lib.json")
@@ -471,12 +479,12 @@ function RayTracer:on_ui()
         ImGui.Text(string.format("Resolution: %d x %d", self.width, self.height))
 
         local is_rendering = (#self.workers > 0) or (self.render_coroutine ~= nil) or (#self.posteffect_workers > 0) or (self.posteffect_coroutine ~= nil)
-        ImGui.BeginDisabled(is_rendering)
 
         -- Render Mode Selection
         ImGui.Text("Render Mode:")
         if ImGui.RadioButton("Single-threaded", not self.use_multithreading) then
             if self.use_multithreading then
+                self:cancel_if_rendering()
                 self.use_multithreading = false
                 self:render()
             end
@@ -484,6 +492,7 @@ function RayTracer:on_ui()
         ImGui.SameLine()
         if ImGui.RadioButton("Multi-threaded", self.use_multithreading) then
             if not self.use_multithreading then
+                self:cancel_if_rendering()
                 self.use_multithreading = true
                 self:render()
             end
@@ -502,6 +511,7 @@ function RayTracer:on_ui()
                 local is_selected = (i == self.current_preset_index)
                 if ImGui.Selectable(preset.name, is_selected) then
                     if i ~= self.current_preset_index then
+                        self:cancel_if_rendering()
                         self.current_preset_index = i
                         self:set_resolution(preset.width, preset.height)
                     end
@@ -539,6 +549,7 @@ function RayTracer:on_ui()
                 local is_selected = (scene.id == self.current_scene_type)
                 if ImGui.Selectable(scene.name, is_selected) then
                     if self.current_scene_type ~= scene.id then
+                        self:cancel_if_rendering()
                         self:reset_scene(scene.id)
                     end
                 end
@@ -549,10 +560,10 @@ function RayTracer:on_ui()
         ImGui.Separator()
         
         if ImGui.Button("Reload Scene") then
+            self:cancel_if_rendering()
             print("Reloading scene module and re-rendering")
             self:reset_scene(self.current_scene_type, true) -- force_reload = true
         end
-        ImGui.EndDisabled()
         
         ImGui.Separator()
 
