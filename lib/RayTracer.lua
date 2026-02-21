@@ -303,6 +303,29 @@ function RayTracer:start_render_threads()
     BlockUtils.setup_shared_queue(self.data, blocks, "render_queue")
 
     -- ワーカーを作成して開始
+    
+    -- カメラ情報をシリアライズ（もし存在すれば）
+    if self.current_scene_module and self.current_scene_module.get_camera then
+        local camera = self.current_scene_module:get_camera()
+        if camera then
+            -- get_state()が実装されている前提、無い場合は手動でテーブルを組み立てる
+            local state = camera.get_state and camera:get_state() or {
+                position = camera.position,
+                look_at = camera.look_at,
+                up = camera.camera_up, -- 内部変数と引数の名前差異に注意
+                aspect_ratio = camera.aspect_ratio,
+                fov = camera.fov,
+                type = camera.type
+            }
+            local camera_state_json = json.encode(state)
+            self.data:set_string("camera_state", camera_state_json)
+        else
+            self.data:set_string("camera_state", "")
+        end
+    else
+        self.data:set_string("camera_state", "")
+    end
+    
     for i = 0, self.NUM_THREADS - 1 do
         -- Boundsは使用しないが、一応画面全体を渡しておく
         local worker = ThreadWorker.create(self.data, self.scene, 0, 0, self.width, self.height, i)
