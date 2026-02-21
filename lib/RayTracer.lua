@@ -702,6 +702,40 @@ function RayTracer:on_ui()
     ImGui.End()
 end
 
+-- マウス入力を処理してカメラを回転させる
+function RayTracer:handle_mouse()
+    if not app.get_mouse_state then return end
+    
+    local state = app.get_mouse_state()
+    if not state then return end
+    
+    -- 右ドラッグ中のみ反応
+    if not state.right then return end
+    
+    -- 相対移動量が0なら何もしない
+    if state.rel_x == 0 and state.rel_y == 0 then return end
+    
+    -- シーンにカメラが存在するか確認
+    if not self.current_scene_module or not self.current_scene_module.get_camera then
+        return
+    end
+    
+    local camera = self.current_scene_module:get_camera()
+    if not camera then return end
+    
+    -- マウスの移動量を角度に変換する感度
+    local sensitivity = 0.2
+    
+    -- X軸の移動 -> Yaw（左右回転）,  Y軸の移動 -> Pitch（上下回転）
+    local delta_yaw = state.rel_x * sensitivity
+    local delta_pitch = state.rel_y * sensitivity
+    
+    camera:rotate(delta_yaw, delta_pitch)
+    
+    -- カメラが移動した場合、レイトレーシングをリセットして再描画
+    self:reset_workers()
+end
+
 -- キーボード入力を処理してカメラを移動させる
 function RayTracer:handle_keyboard()
     if not app.get_keyboard_state then return end

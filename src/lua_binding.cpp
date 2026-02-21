@@ -250,6 +250,43 @@ void bind_lua(sol::state& lua, AppContext& ctx) {
         
         return state;
     });
+
+    // Get Mouse State for generalized input
+    app.set_function("get_mouse_state", [&lua]() -> sol::table {
+        sol::table state = lua.create_table();
+        
+        // ImGuiがマウスをキャプチャしている場合は空テーブル（または全てfalse等の状態）を返す
+        if (ImGui::GetCurrentContext() != nullptr) {
+            ImGuiIO& io = ImGui::GetIO();
+            if (io.WantCaptureMouse) {
+                state["x"] = 0.0;
+                state["y"] = 0.0;
+                state["rel_x"] = 0.0;
+                state["rel_y"] = 0.0;
+                state["left"] = false;
+                state["middle"] = false;
+                state["right"] = false;
+                return state;
+            }
+        }
+        
+        float x, y;
+        uint32_t buttons = SDL_GetMouseState(&x, &y);
+        
+        float rel_x, rel_y;
+        SDL_GetRelativeMouseState(&rel_x, &rel_y);
+        
+        state["x"] = (double)x;
+        state["y"] = (double)y;
+        state["rel_x"] = (double)rel_x;
+        state["rel_y"] = (double)rel_y;
+        
+        state["left"] = (buttons & SDL_BUTTON_LMASK) != 0;
+        state["middle"] = (buttons & SDL_BUTTON_MMASK) != 0;
+        state["right"] = (buttons & SDL_BUTTON_RMASK) != 0;
+        
+        return state;
+    });
     
     // Bind Common Types (Embree, AppData)
     bind_common_types(lua);

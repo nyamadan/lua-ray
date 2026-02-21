@@ -150,6 +150,68 @@ function Camera:move_up(distance)
     self:compute_camera_basis()
 end
 
+-- カメラの回転（yaw, pitch）
+-- @param delta_yaw: Y軸周りの回転量（度数法）
+-- @param delta_pitch: ローカル右軸周りの回転量（度数法）
+function Camera:rotate(delta_yaw, delta_pitch)
+    local rad_yaw = delta_yaw * math.pi / 180.0
+    local rad_pitch = delta_pitch * math.pi / 180.0
+    
+    local fx, fy, fz = self.forward[1], self.forward[2], self.forward[3]
+    
+    -- 1. Yaw回転 (ワールドY軸: 0, 1, 0 に沿って回転)
+    -- Y軸回転の標準的な回転行列: (x, y, z) -> (x*cos + z*sin, y, -x*sin + z*cos)
+    local cos_y = math.cos(rad_yaw)
+    local sin_y = math.sin(rad_yaw)
+    
+    local new_fx_y = fx * cos_y + fz * sin_y
+    local new_fy_y = fy
+    local new_fz_y = -fx * sin_y + fz * cos_y
+    
+    -- 一旦Yawのみ適用した新たなForwardベクトル
+    fx, fy, fz = new_fx_y, new_fy_y, new_fz_y
+    
+    -- 2. Pitch回転 (ローカルRight軸に沿って回転, ロドリゲスの回転公式)
+    local rx, ry, rz = self.right[1], self.right[2], self.right[3]
+    local cos_p = math.cos(rad_pitch)
+    local sin_p = math.sin(rad_pitch)
+    
+    -- 外積 k x v  (k=right, v=forward)
+    local kxv_x = ry * fz - rz * fy
+    local kxv_y = rz * fx - rx * fz
+    local kxv_z = rx * fy - ry * fx
+    
+    -- 新しいForwardベクトルを計算 v_rot = v*cos + (k x v)*sin
+    -- (k . v = 0 なので第3項は不要)
+    local new_fx = fx * cos_p + kxv_x * sin_p
+    local new_fy = fy * cos_p + kxv_y * sin_p
+    local new_fz = fz * cos_p + kxv_z * sin_p
+    
+    -- ジンバルロック対策 (真上・真下を向きすぎないように制限)
+    local len = math.sqrt(new_fx^2 + new_fy^2 + new_fz^2)
+    if len > 0 then
+        new_fx = new_fx / len
+        new_fy = new_fy / len
+        new_fz = new_fz / len
+        -- Y成分が極端に近い場合（±0.99）はPitch回転をキャンセルしYawのみ適用
+        if math.abs(new_fy) > 0.99 then
+            new_fx, new_fy, new_fz = new_fx_y, new_fy_y, new_fz_y
+            local len_y = math.sqrt(new_fx^2 + new_fy^2 + new_fz^2)
+            if len_y > 0 then
+                new_fx, new_fy, new_fz = new_fx / len_y, new_fy / len_y, new_fz / len_y
+            end
+        end
+    end
+    
+    -- look_atを更新
+    self.look_at[1] = self.position[1] + new_fx
+    self.look_at[2] = self.position[2] + new_fy
+    self.look_at[3] = self.position[3] + new_fz
+    
+    -- 基底を再計算してrightとupを更新
+    self:compute_camera_basis()
+end
+
 
 -- 透視投影レイの生成
 function Camera:generate_perspective_ray(u, v)
