@@ -46,8 +46,8 @@ function M.start(embree_scene, app_data)
     materials[2] = {r = 0.2, g = 0.2, b = 1.0} -- 青
     
     -- カメラの作成: 透視投影
-    local Camera = require("lib.Camera")
-    camera = Camera.new("perspective", {
+    local CameraUtils = require("lib.CameraUtils")
+    camera = CameraUtils.setup_or_sync_camera(camera, app_data, {
         position = {0, 0, 5},
         look_at = {0, 0, 0},
         up = {0, 1, 0},
@@ -119,6 +119,16 @@ function M.post_effect(data, x, y)
     local gray = math.floor(0.299 * r + 0.587 * g + 0.114 * b)
     
     data:set_pixel(x, y, gray, gray, gray)
+end
+
+-- 外部からカメラインスタンスを取得できるようにする
+function M.get_camera()
+    return camera
+end
+
+-- クリーンアップ処理
+function M.cleanup()
+    camera = nil -- シーンリセット時にカメラも完全に初期化させる
 end
 
 return M

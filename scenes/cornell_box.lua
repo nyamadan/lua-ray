@@ -128,7 +128,8 @@ function M.start(embree_scene, app_data)
     -- position: (50, 52, 220)
     -- direction: (0, -0.04, -1)
     -- screen_dist: 40, screen_height: 30 -> FOV ≈ 41°
-    camera = Camera.new("perspective", {
+    local CameraUtils = require("lib.CameraUtils")
+    camera = CameraUtils.setup_or_sync_camera(camera, app_data, {
         position = {50, 52, 220},
         look_at = {50, 52 - 0.04 * 40, 220 - 40},  -- position + direction * screen_dist
         up = {0, 1, 0},
@@ -180,6 +181,16 @@ end
 function M.post_effect(data, x, y)
     local r, g, b = BilateralFilter.filter(data, x, y)
     data:set_pixel(x, y, r, g, b)
+end
+
+-- 外部からカメラインスタンスを取得できるようにする
+function M.get_camera()
+    return camera
+end
+
+-- クリーンアップ処理
+function M.cleanup()
+    camera = nil -- シーンリセット時にカメラも完全に初期化させる
 end
 
 return M

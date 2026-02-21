@@ -49,16 +49,15 @@ function M.start(embree_scene, app_data)
     height = app_data:height()
     local aspect_ratio = width / height
 
-    -- カメラの作成: 透視投影、ボックスが見える位置に配置
-    local Camera = require("lib.Camera")
-    camera = Camera.new("perspective", {
+    local CameraUtils = require("lib.CameraUtils")
+    camera = CameraUtils.setup_or_sync_camera(camera, app_data, {
         position = {2.0, 1.5, 3.0},
         look_at = {0, 0, 0},
         up = {0, 1, 0},
         aspect_ratio = aspect_ratio,
         fov = 45.0
     })
-    print("Camera created for glTF Box Scene")
+    print("Camera synchronized for glTF Box Scene")
 end
 
 -- ピクセルの色を計算（ディフューズシェーディング）
@@ -96,6 +95,16 @@ function M.shade(data, x, y)
         local b = math.floor(255 * (1.0 - bg_t) * 0.9 + 255 * bg_t * 0.6)
         data:set_pixel(x, flip_y, r, g, b)
     end
+end
+
+-- 外部からカメラインスタンスを取得できるようにする
+function M.get_camera()
+    return camera
+end
+
+-- クリーンアップ処理
+function M.cleanup()
+    camera = nil -- シーンリセット時にカメラも完全に初期化させる
 end
 
 return M
