@@ -103,7 +103,90 @@ TEST_F(CameraTest, GenerateRay_Center) {
     ASSERT_NEAR(dz, -1.0, 1e-5);
 }
 
+TEST_F(CameraTest, MoveForward) {
+    // Camera at (0,0,1) looking at (0,0,0). Forward=(0,0,-1).
+    // move_forward(0.5) should move both position and look_at by 0.5 * forward.
+    auto script = R"(
+        local Camera = require('lib.Camera')
+        local c = Camera.new('perspective', {
+            position = {0, 0, 1},
+            look_at = {0, 0, 0},
+            up = {0, 1, 0},
+            fov = 60,
+            aspect_ratio = 1.0
+        })
+        c:move_forward(0.5)
+        return c.position[1], c.position[2], c.position[3],
+               c.look_at[1], c.look_at[2], c.look_at[3]
+    )";
+    auto result = lua.safe_script(script);
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    auto [px, py, pz, lx, ly, lz] = result.get<std::tuple<double, double, double, double, double, double>>();
+    
+    ASSERT_NEAR(px, 0.0, 1e-5);
+    ASSERT_NEAR(py, 0.0, 1e-5);
+    ASSERT_NEAR(pz, 0.5, 1e-5);
+    
+    ASSERT_NEAR(lx, 0.0, 1e-5);
+    ASSERT_NEAR(ly, 0.0, 1e-5);
+    ASSERT_NEAR(lz, -0.5, 1e-5);
+}
 
+TEST_F(CameraTest, MoveRight) {
+    // Camera at (0,0,1) looking at (0,0,0). Right=(1,0,0).
+    auto script = R"(
+        local Camera = require('lib.Camera')
+        local c = Camera.new('perspective', {
+            position = {0, 0, 1},
+            look_at = {0, 0, 0},
+            up = {0, 1, 0},
+            fov = 60,
+            aspect_ratio = 1.0
+        })
+        c:move_right(1.0)
+        return c.position[1], c.position[2], c.position[3],
+               c.look_at[1], c.look_at[2], c.look_at[3]
+    )";
+    auto result = lua.safe_script(script);
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    auto [px, py, pz, lx, ly, lz] = result.get<std::tuple<double, double, double, double, double, double>>();
+    
+    ASSERT_NEAR(px, 1.0, 1e-5);
+    ASSERT_NEAR(py, 0.0, 1e-5);
+    ASSERT_NEAR(pz, 1.0, 1e-5);
+    
+    ASSERT_NEAR(lx, 1.0, 1e-5);
+    ASSERT_NEAR(ly, 0.0, 1e-5);
+    ASSERT_NEAR(lz, 0.0, 1e-5);
+}
+
+TEST_F(CameraTest, MoveUp) {
+    // Camera at (0,0,1) looking at (0,0,0). camera_up=(0,1,0).
+    auto script = R"(
+        local Camera = require('lib.Camera')
+        local c = Camera.new('perspective', {
+            position = {0, 0, 1},
+            look_at = {0, 0, 0},
+            up = {0, 1, 0},
+            fov = 60,
+            aspect_ratio = 1.0
+        })
+        c:move_up(2.0)
+        return c.position[1], c.position[2], c.position[3],
+               c.look_at[1], c.look_at[2], c.look_at[3]
+    )";
+    auto result = lua.safe_script(script);
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    auto [px, py, pz, lx, ly, lz] = result.get<std::tuple<double, double, double, double, double, double>>();
+    
+    ASSERT_NEAR(px, 0.0, 1e-5);
+    ASSERT_NEAR(py, 2.0, 1e-5);
+    ASSERT_NEAR(pz, 1.0, 1e-5);
+    
+    ASSERT_NEAR(lx, 0.0, 1e-5);
+    ASSERT_NEAR(ly, 2.0, 1e-5);
+    ASSERT_NEAR(lz, 0.0, 1e-5);
+}
 TEST_F(CameraTest, GenerateRay_TopRight) {
     // u=1, v=1 -> Top Right corner
     // tan(45) = 1. half_height = 1.
@@ -190,5 +273,39 @@ TEST_F(CameraTest, GenerateOrthographicRay) {
     ASSERT_NEAR(dx, 0.0, 1e-5);
     ASSERT_NEAR(dy, 0.0, 1e-5);
     ASSERT_NEAR(dz, -1.0, 1e-5);
+}
+
+TEST_F(CameraTest, RotateCamera_YawAndPitch) {
+    // Camera at (0,0,0) looking at (0,0,1). Forward=(0,0,1).
+    // Rotate by 90 degrees yaw (around Y axis). Should look at (1,0,0).
+    auto script = R"(
+        local Camera = require('lib.Camera')
+        local c = Camera.new('perspective', {
+            position = {0, 0, 0},
+            look_at = {0, 0, 1},
+            up = {0, 1, 0},
+            fov = 60,
+            aspect_ratio = 1.0
+        })
+        -- delta_yaw (degrees), delta_pitch (degrees)
+        c:rotate(90.0, 0.0)
+        
+        -- Forward needs to be close to (1, 0, 0)
+        -- since it looks from 0,0,0 to 1,0,0.
+        return c.forward[1], c.forward[2], c.forward[3],
+               c.look_at[1], c.look_at[2], c.look_at[3]
+    )";
+    auto result = lua.safe_script(script);
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    auto [fx, fy, fz, lx, ly, lz] = result.get<std::tuple<double, double, double, double, double, double>>();
+    
+    ASSERT_NEAR(fx, 1.0, 1e-5);
+    ASSERT_NEAR(fy, 0.0, 1e-5);
+    ASSERT_NEAR(fz, 0.0, 1e-5);
+    
+    // look_at point is defined exactly as position + forward
+    ASSERT_NEAR(lx, 1.0, 1e-5);
+    ASSERT_NEAR(ly, 0.0, 1e-5);
+    ASSERT_NEAR(lz, 0.0, 1e-5);
 }
 

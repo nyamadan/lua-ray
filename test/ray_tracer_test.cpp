@@ -275,7 +275,60 @@ TEST_F(RayTracerTest, SingleThreadedCheckInterval) {
     ASSERT_LT(shade_count, 10) << "Should yield early when rendering is slow (processed " << shade_count << " pixels)";
 }
 
+TEST_F(RayTracerTest, HandleKeyboardMovesCameraAndResetsWorkers) {
+    auto result = lua.safe_script(R"(
+        local RayTracer = require('lib.RayTracer')
+        local rt = RayTracer.new(100, 100)
+        
+        -- モックapp関数
+        app.get_keyboard_state = function()
+            return { w = true, a = false, s = false, d = false, q = false, e = false, space = true, escape = false }
+        end
+        app.get_ticks = function() return 0 end
+        app.init_video = function() return true end
+        app.create_window = function(w, h, title) return "mock_window" end
+        app.create_renderer = function(win) return "mock_renderer" end
+        app.create_texture = function(r, w, h) return "mock_texture" end
+        app.configure = function(config) end
 
+        rt:init()
+        
+        -- reset_workersが呼ばれたかを記録
+        local reset_called = false
+        rt.reset_workers = function(self)
+            reset_called = true
+        end
+        
+        -- モックカメラ (移動メソッドが呼ばれたかを記録)
+        local mock_camera = {
+            forward_dist = 0,
+            right_dist = 0,
+            up_dist = 0,
+            move_forward = function(self, dist) self.forward_dist = self.forward_dist + dist end,
+            move_right = function(self, dist) self.right_dist = self.right_dist + dist end,
+            move_up = function(self, dist) self.up_dist = self.up_dist + dist end
+        }
+        
+        -- モックシーンモジュール
+        local mock_scene = {
+            get_camera = function() return mock_camera end
+        }
+        rt.current_scene_module = mock_scene
+        
+        -- テスト対象メソッドの実行
+        rt:handle_keyboard()
+        
+        return reset_called, mock_camera.forward_dist, mock_camera.right_dist, mock_camera.up_dist
+    )");
+    
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    std::tuple<bool, double, double, double> res = result;
+    
+    ASSERT_TRUE(std::get<0>(res)) << "reset_workers should be called when camera moves";
+    ASSERT_GT(std::get<1>(res), 0.0) << "camera.move_forward should be called (w is pressed)";
+    ASSERT_EQ(std::get<2>(res), 0.0) << "camera.move_right should not be called (a/d are not pressed)";
+    ASSERT_GT(std::get<3>(res), 0.0) << "camera.move_up should be called (space is pressed)";
+}
 // シングルスレッドモードでのstop呼び出しテスト (完了時)
 TEST_F(RayTracerTest, SingleThreadedStopOnFinish) {
     // モック設定

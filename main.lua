@@ -20,6 +20,8 @@ raytracer:init_scene()
 
 -- Set global frame callback
 function app.on_frame()
+    raytracer:handle_keyboard()
+    raytracer:handle_mouse()
     raytracer:update()
     raytracer:on_ui()
 end

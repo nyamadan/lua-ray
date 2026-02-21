@@ -3,7 +3,9 @@
 #include "imgui_lua_binding.h"
 #include "embree_wrapper.h"
 #include "gltf_loader.h"
+#include "imgui.h"
 #include <iostream>
+
 #include "app.h"
 #include "app_data.h"
 #include "thread_worker.h"
@@ -201,6 +203,89 @@ void bind_lua(sol::state& lua, AppContext& ctx) {
 
     app.set_function("get_ticks", []() -> uint32_t {
         return SDL_GetTicks();
+    });
+    
+    // Get Keyboard State for generalized input
+    app.set_function("get_keyboard_state", [&lua]() -> sol::table {
+        sol::table state = lua.create_table();
+        
+        // Check if ImGui wants to capture keyboard (e.g., user is typing in a text input)
+        // Only check if ImGui context exists (for tests)
+        if (ImGui::GetCurrentContext() != nullptr) {
+            ImGuiIO& io = ImGui::GetIO();
+            if (io.WantCaptureKeyboard) {
+                return state; // 空のテーブルを返す（すべてのキーアクセスがnil/false扱いになる）
+            }
+        }
+        
+        int numkeys;
+        const bool* keys = SDL_GetKeyboardState(&numkeys);
+        
+        if (keys) {
+            // 主要なスキャンコードを走査して状態をテーブルに詰める
+            // 注: luaテーブルアクセスを高速にするため、よく使うキーのエイリアスも用意可能だが
+            // 基本的には SDL_GetScancodeName を小文字にしたものを使う
+            for (int i = 0; i < numkeys; ++i) {
+                if (keys[i]) {
+                    const char* name = SDL_GetScancodeName((SDL_Scancode)i);
+                    if (name && name[0] != '\0') {
+                        std::string key_name = name;
+                        // To lowercase
+                        for (auto& c : key_name) {
+                            c = std::tolower(c);
+                        }
+                        // 空白を詰める等の処理も可能だが、SDLの名前は比較的シンプル(e.g. "space", "right", "w")
+                        state[key_name] = true;
+                    }
+                }
+            }
+        }
+        
+        // メタテーブルを設定して、登録されていないキーはfalseを返すようにする
+        sol::table mt = lua.create_table();
+        mt[sol::meta_function::index] = [](sol::table, sol::object) {
+            return false;
+        };
+        state[sol::metatable_key] = mt;
+        
+        return state;
+    });
+
+    // Get Mouse State for generalized input
+    app.set_function("get_mouse_state", [&lua]() -> sol::table {
+        sol::table state = lua.create_table();
+        
+        // ImGuiがマウスをキャプチャしている場合は空テーブル（または全てfalse等の状態）を返す
+        if (ImGui::GetCurrentContext() != nullptr) {
+            ImGuiIO& io = ImGui::GetIO();
+            if (io.WantCaptureMouse) {
+                state["x"] = 0.0;
+                state["y"] = 0.0;
+                state["rel_x"] = 0.0;
+                state["rel_y"] = 0.0;
+                state["left"] = false;
+                state["middle"] = false;
+                state["right"] = false;
+                return state;
+            }
+        }
+        
+        float x, y;
+        uint32_t buttons = SDL_GetMouseState(&x, &y);
+        
+        float rel_x, rel_y;
+        SDL_GetRelativeMouseState(&rel_x, &rel_y);
+        
+        state["x"] = (double)x;
+        state["y"] = (double)y;
+        state["rel_x"] = (double)rel_x;
+        state["rel_y"] = (double)rel_y;
+        
+        state["left"] = (buttons & SDL_BUTTON_LMASK) != 0;
+        state["middle"] = (buttons & SDL_BUTTON_MMASK) != 0;
+        state["right"] = (buttons & SDL_BUTTON_RMASK) != 0;
+        
+        return state;
     });
     
     // Bind Common Types (Embree, AppData)

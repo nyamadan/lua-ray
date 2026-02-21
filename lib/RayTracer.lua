@@ -185,9 +185,10 @@ function RayTracer:reset_scene(scene_type, force_reload)
     self:render()
 end
 
--- ワーカーのみをソフトリセット（setup/cleanupは呼ばない、テクスチャクリアなし）
+-- ワーカーのみをソフトリセット
 -- stop → start を呼び直し、レンダリングブロックを再作成してレンダリングを再開する
-function RayTracer:reset_workers()
+-- clear_texture: trueの場合はテクスチャをクリアして再描画、省略またはfalseの場合はクリアせずに上書き描画
+function RayTracer:reset_workers(clear_texture)
     print("Resetting workers...")
     
     -- 実行中のワーカーを安全に停止（マルチスレッド時はワーカー内でstopが呼ばれる）
@@ -208,8 +209,12 @@ function RayTracer:reset_workers()
         self.current_scene_module.start(self.scene, self.data)
     end
     
-    -- レンダリングを再開（ブロック再作成含む、テクスチャクリアなし）
-    self:render_without_clear()
+    -- レンダリングを再開
+    if clear_texture then
+        self:render()
+    else
+        self:render_without_clear()
+    end
 end
 
 -- テクスチャクリアなしでレンダリングを開始
@@ -303,6 +308,29 @@ function RayTracer:start_render_threads()
     BlockUtils.setup_shared_queue(self.data, blocks, "render_queue")
 
     -- ワーカーを作成して開始
+    
+    -- カメラ情報をシリアライズ（もし存在すれば）
+    if self.current_scene_module and self.current_scene_module.get_camera then
+        local camera = self.current_scene_module:get_camera()
+        if camera then
+            -- get_state()が実装されている前提、無い場合は手動でテーブルを組み立てる
+            local state = camera.get_state and camera:get_state() or {
+                position = camera.position,
+                look_at = camera.look_at,
+                up = camera.camera_up, -- 内部変数と引数の名前差異に注意
+                aspect_ratio = camera.aspect_ratio,
+                fov = camera.fov,
+                type = camera.type
+            }
+            local camera_state_json = json.encode(state)
+            self.data:set_string("camera_state", camera_state_json)
+        else
+            self.data:set_string("camera_state", "")
+        end
+    else
+        self.data:set_string("camera_state", "")
+    end
+    
     for i = 0, self.NUM_THREADS - 1 do
         -- Boundsは使用しないが、一応画面全体を渡しておく
         local worker = ThreadWorker.create(self.data, self.scene, 0, 0, self.width, self.height, i)
@@ -602,6 +630,7 @@ function RayTracer:on_ui()
             { id = "triangle", name = "Triangle" },
             { id = "sphere", name = "Sphere" },
             { id = "materialed_sphere", name = "MatSphere" },
+            { id = "wasd_camera", name = "WASD Camera" },
             { id = "posteffect", name = "PostEffect" },
             { id = "material_transfer", name = "MatTransfer" },
             { id = "gltf_box", name = "GLTF Box" },
@@ -671,6 +700,90 @@ function RayTracer:on_ui()
         end
     end
     ImGui.End()
+end
+
+-- マウス入力を処理してカメラを回転させる
+function RayTracer:handle_mouse()
+    if not app.get_mouse_state then return end
+    
+    local state = app.get_mouse_state()
+    if not state then return end
+    
+    -- 右ドラッグ中のみ反応
+    if not state.right then return end
+    
+    -- 相対移動量が0なら何もしない
+    if state.rel_x == 0 and state.rel_y == 0 then return end
+    
+    -- シーンにカメラが存在するか確認
+    if not self.current_scene_module or not self.current_scene_module.get_camera then
+        return
+    end
+    
+    local camera = self.current_scene_module:get_camera()
+    if not camera then return end
+    
+    -- マウスの移動量を角度に変換する感度
+    local sensitivity = 0.2
+    
+    -- X軸の移動 -> Yaw（左右回転）,  Y軸の移動 -> Pitch（上下回転）
+    local delta_yaw = state.rel_x * sensitivity
+    local delta_pitch = state.rel_y * sensitivity
+    
+    camera:rotate(delta_yaw, delta_pitch)
+    
+    -- カメラが移動した場合、レイトレーシングをリセットして再描画
+    self:reset_workers()
+end
+
+-- キーボード入力を処理してカメラを移動させる
+function RayTracer:handle_keyboard()
+    if not app.get_keyboard_state then return end
+    
+    local state = app.get_keyboard_state()
+    if not state then return end
+    
+    -- シーンにカメラが存在するか確認
+    if not self.current_scene_module or not self.current_scene_module.get_camera then
+        return
+    end
+    
+    local camera = self.current_scene_module:get_camera()
+    if not camera then return end
+    
+    local moved = false
+    local speed = 0.5 -- 1フレームあたりの移動速度
+    
+    -- キーボードの状態に応じて移動
+    if state["w"] or state["up"] then
+        camera:move_forward(speed)
+        moved = true
+    end
+    if state["s"] or state["down"] then
+        camera:move_forward(-speed)
+        moved = true
+    end
+    if state["d"] or state["right"] then
+        camera:move_right(speed)
+        moved = true
+    end
+    if state["a"] or state["left"] then
+        camera:move_right(-speed)
+        moved = true
+    end
+    if state["e"] or state["space"] then
+        camera:move_up(speed)
+        moved = true
+    end
+    if state["q"] or state["c"] then
+        camera:move_up(-speed)
+        moved = true
+    end
+    
+    -- カメラが移動した場合、レイトレーシングをリセットして再描画
+    if moved then
+        self:reset_workers()
+    end
 end
 
 return RayTracer
