@@ -185,9 +185,10 @@ function RayTracer:reset_scene(scene_type, force_reload)
     self:render()
 end
 
--- ワーカーのみをソフトリセット（setup/cleanupは呼ばない、テクスチャクリアなし）
+-- ワーカーのみをソフトリセット
 -- stop → start を呼び直し、レンダリングブロックを再作成してレンダリングを再開する
-function RayTracer:reset_workers()
+-- clear_texture: trueの場合はテクスチャをクリアして再描画、省略またはfalseの場合はクリアせずに上書き描画
+function RayTracer:reset_workers(clear_texture)
     print("Resetting workers...")
     
     -- 実行中のワーカーを安全に停止（マルチスレッド時はワーカー内でstopが呼ばれる）
@@ -208,8 +209,12 @@ function RayTracer:reset_workers()
         self.current_scene_module.start(self.scene, self.data)
     end
     
-    -- レンダリングを再開（ブロック再作成含む、テクスチャクリアなし）
-    self:render_without_clear()
+    -- レンダリングを再開
+    if clear_texture then
+        self:render()
+    else
+        self:render_without_clear()
+    end
 end
 
 -- テクスチャクリアなしでレンダリングを開始
