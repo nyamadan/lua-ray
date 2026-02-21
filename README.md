@@ -39,7 +39,6 @@ lua-ray/
 ├── src/                # C++ ソースコード
 ├── workers/            # Lua ワーカースクリプト (レイトレーシング計算など)
 ├── test/               # ユニットテスト (Google Test)
-├── cmake/              # CMake モジュール
 ├── build/              # ビルド出力ディレクトリ
 ├── CMakeLists.txt      # CMake 設定
 ├── CMakePresets.json   # CMake プリセット

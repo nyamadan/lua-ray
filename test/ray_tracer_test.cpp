@@ -275,3 +275,110 @@ TEST_F(RayTracerTest, SingleThreadedCheckInterval) {
     ASSERT_LT(shade_count, 10) << "Should yield early when rendering is slow (processed " << shade_count << " pixels)";
 }
 
+
+// シングルスレッドモードでのstop呼び出しテスト (完了時)
+TEST_F(RayTracerTest, SingleThreadedStopOnFinish) {
+    // モック設定
+    lua.script(R"(
+        app.init_video = function() return true end
+        app.create_window = function(w, h, title) return "mock_window" end
+        app.create_renderer = function(win) return "mock_renderer" end
+        app.create_texture = function(r, w, h) return "mock_texture" end
+        app.configure = function(config) end
+        app.destroy_texture = function(tex) end
+        app.update_texture = function(tex, data) end
+        app.update_texture_from_back = function(tex, data) end
+        app.get_ticks = function() return 0 end
+    )");
+
+    auto result = lua.safe_script(R"(
+        local RayTracer = require('lib.RayTracer')
+        local rt = RayTracer.new(100, 100)
+        rt:init()
+        
+        -- モックシーン
+        local stop_called = false
+        local mock_scene = {}
+        mock_scene.setup = function() end
+        mock_scene.start = function() end
+        mock_scene.shade = function(data, x, y) end -- 何もしない
+        mock_scene.stop = function(scene)
+            stop_called = true
+        end
+        rt.current_scene_module = mock_scene
+        
+        -- レンダリング開始
+        rt:render()
+        
+        -- updateを回して完了まで待つ
+        local max_loops = 10
+        local loop_count = 0
+        while rt.render_coroutine and loop_count < max_loops do
+            rt:update()
+            loop_count = loop_count + 1
+        end
+        
+        return stop_called, rt.render_coroutine, loop_count
+    )");
+    
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    std::tuple<bool, sol::object, int> res = result;
+    bool stop_called = std::get<0>(res);
+    sol::object coroutine_obj = std::get<1>(res);
+    int loop_count = std::get<2>(res);
+    
+    ASSERT_TRUE(coroutine_obj.is<sol::nil_t>()) << "Coroutine should be nil after finish (loops: " << loop_count << ")";
+    ASSERT_TRUE(stop_called) << "stop() should be called when rendering finishes";
+}
+
+// シングルスレッドモードでのstop呼び出しテスト (キャンセル時)
+TEST_F(RayTracerTest, SingleThreadedStopOnCancel) {
+    // モック設定
+    lua.script(R"(
+        app.init_video = function() return true end
+        app.create_window = function(w, h, title) return "mock_window" end
+        app.create_renderer = function(win) return "mock_renderer" end
+        app.create_texture = function(r, w, h) return "mock_texture" end
+        app.configure = function(config) end
+        app.destroy_texture = function(tex) end
+        app.update_texture = function(tex, data) end
+        app.update_texture_from_back = function(tex, data) end
+        app.get_ticks = function() return 0 end
+    )");
+
+    auto result = lua.safe_script(R"(
+        local RayTracer = require('lib.RayTracer')
+        local rt = RayTracer.new(100, 100)
+        rt:init()
+        
+        -- モックシーン
+        local stop_called = false
+        local mock_scene = {}
+        mock_scene.setup = function() end
+        mock_scene.start = function() end
+        mock_scene.shade = function(data, x, y) end
+        mock_scene.stop = function(scene)
+            stop_called = true
+        end
+        rt.current_scene_module = mock_scene
+        
+        -- レンダリング開始（ダミーコルーチンセット）
+        rt.render_coroutine = coroutine.create(function() 
+            while true do coroutine.yield() end
+        end)
+        
+        -- キャンセル実行
+        rt:cancel()
+        
+        return stop_called, rt.render_coroutine
+    )");
+    
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    std::tuple<bool, sol::object> res = result;
+    bool stop_called = std::get<0>(res);
+    sol::object coroutine_obj = std::get<1>(res);
+    
+    ASSERT_TRUE(coroutine_obj.is<sol::nil_t>()) << "Coroutine should be nil after cancel";
+    ASSERT_TRUE(stop_called) << "stop() should be called when rendering is cancelled";
+}
+

@@ -24,4 +24,15 @@ local function check_cancel()
 end
 
 -- 処理実行
-WorkerUtils.process_blocks(_app_data, "render_queue", "render_queue_idx", process_callback, check_cancel)
+local status, err = pcall(function()
+    WorkerUtils.process_blocks(_app_data, "render_queue", "render_queue_idx", process_callback, check_cancel)
+end)
+
+if not status then
+    print("Worker Error: " .. tostring(err))
+end
+
+-- シーン終了処理
+if scene_module.stop then
+    scene_module.stop(_scene)
+end
