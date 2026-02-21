@@ -99,6 +99,58 @@ function Camera:compute_camera_basis()
     self.camera_up = {ux, uy, uz}
 end
 
+-- 前方向に移動（position と look_at を同時に移動）
+function Camera:move_forward(distance)
+    local dx = self.forward[1] * distance
+    local dy = self.forward[2] * distance
+    local dz = self.forward[3] * distance
+    
+    self.position[1] = self.position[1] + dx
+    self.position[2] = self.position[2] + dy
+    self.position[3] = self.position[3] + dz
+    
+    self.look_at[1] = self.look_at[1] + dx
+    self.look_at[2] = self.look_at[2] + dy
+    self.look_at[3] = self.look_at[3] + dz
+    
+    self:compute_camera_basis()
+end
+
+-- 右方向に移動（position と look_at を同時に移動）
+function Camera:move_right(distance)
+    local dx = self.right[1] * distance
+    local dy = self.right[2] * distance
+    local dz = self.right[3] * distance
+    
+    self.position[1] = self.position[1] + dx
+    self.position[2] = self.position[2] + dy
+    self.position[3] = self.position[3] + dz
+    
+    self.look_at[1] = self.look_at[1] + dx
+    self.look_at[2] = self.look_at[2] + dy
+    self.look_at[3] = self.look_at[3] + dz
+    
+    self:compute_camera_basis()
+end
+
+-- 上方向に移動（position と look_at を同時に移動）
+function Camera:move_up(distance)
+    local dx = self.camera_up[1] * distance
+    local dy = self.camera_up[2] * distance
+    local dz = self.camera_up[3] * distance
+    
+    self.position[1] = self.position[1] + dx
+    self.position[2] = self.position[2] + dy
+    self.position[3] = self.position[3] + dz
+    
+    self.look_at[1] = self.look_at[1] + dx
+    self.look_at[2] = self.look_at[2] + dy
+    self.look_at[3] = self.look_at[3] + dz
+    
+    self:compute_camera_basis()
+end
+
+
 -- 透視投影レイの生成
 function Camera:generate_perspective_ray(u, v)
     -- 視野角からスクリーンサイズを計算
