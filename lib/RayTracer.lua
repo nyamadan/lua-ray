@@ -190,7 +190,7 @@ end
 -- clear_texture: trueの場合はテクスチャをクリアして再描画、省略またはfalseの場合はクリアせずに上書き描画
 function RayTracer:reset_workers(clear_texture)
     print("Resetting workers...")
-    
+
     -- 実行中のワーカーを安全に停止（マルチスレッド時はワーカー内でstopが呼ばれる）
     self:terminate_workers()
     
@@ -286,6 +286,20 @@ function RayTracer:cancel_if_rendering()
     end
 end
 
+-- ブロック分割と共有キューの共通セットアップ
+function RayTracer:setup_blocks(queue_name)
+    -- ブロック単位で画面を分割
+    local blocks = BlockUtils.generate_blocks(
+        self.width, self.height, self.BLOCK_SIZE, 1
+    )
+    
+    -- ブロックをシャッフルしてランダム順序にする
+    blocks = BlockUtils.shuffle_blocks(blocks)
+    
+    -- 共有キューをセットアップ
+    BlockUtils.setup_shared_queue(self.data, blocks, queue_name)
+end
+
 -- スレッドレンダリングを開始（ブロック単位分割、9スレッド制限）
 function RayTracer:start_render_threads()
     local json = require("lib.json")
@@ -296,16 +310,7 @@ function RayTracer:start_render_threads()
     -- 既存のワーカーをクリア
     self.workers = {}
     
-    -- ブロック単位で画面を分割
-    local blocks = BlockUtils.generate_blocks(
-        self.width, self.height, self.BLOCK_SIZE, 1 -- スレッド数は分割には無関係なので1
-    )
-    
-    -- ブロックをシャッフルしてランダム順序にする
-    blocks = BlockUtils.shuffle_blocks(blocks)
-    
-    -- 共有キューをセットアップ
-    BlockUtils.setup_shared_queue(self.data, blocks, "render_queue")
+    self:setup_blocks("render_queue")
 
     -- ワーカーを作成して開始
     
@@ -343,41 +348,22 @@ end
 
 -- シングルスレッドレンダリング用コルーチン作成
 function RayTracer:create_render_coroutine()
+    local WorkerUtils = require("workers.worker_utils")
     return coroutine.create(function()
         print("Starting single-threaded render (Coroutine)...")
-        local startTime = app.get_ticks()
-        local frameAllowance = 12 -- 12ms
         
-        -- 移動平均初期化
-        local time_avg = BlockUtils.MovingAverage.new(0.1)
-        local estimated_time = 0
+        self:setup_blocks("render_queue")
         
-        for y = 0, self.height - 1 do
-            for x = 0, self.width - 1 do
-                -- 推定時間が閾値を超えたらチェック
-                if estimated_time >= frameAllowance then
-                    if (app.get_ticks() - startTime) >= frameAllowance then
-                        coroutine.yield()
-                        startTime = app.get_ticks() -- Reset start time for next slice
-                    end
-                    estimated_time = 0
-                end
-
-                local pixel_start = app.get_ticks()
-                self.current_scene_module.shade(self.data, x, y)
-                local pixel_end = app.get_ticks()
-                
-                -- 処理時間を計測して移動平均を更新
-                local elapsed = pixel_end - pixel_start
-                if elapsed <= 0 then
-                    elapsed = 0.001
-                end
-                time_avg:update(elapsed)
-                
-                -- 推定時間を更新
-                estimated_time = estimated_time + time_avg:get()
-            end
+        local function process_callback(app_data, x, y)
+            self.current_scene_module.shade(app_data, x, y)
         end
+        
+        local function check_cancel()
+            coroutine.yield()
+            return false
+        end
+        
+        WorkerUtils.process_blocks(self.data, "render_queue", "render_queue_idx", process_callback, check_cancel)
         
         print(string.format("Single-threaded render finished internally."))
     end)
@@ -526,16 +512,7 @@ function RayTracer:start_posteffect_threads()
     
     self.posteffect_workers = {}
     
-    -- ブロック単位で画面を分割
-    local blocks = BlockUtils.generate_blocks(
-        self.width, self.height, self.BLOCK_SIZE, 1 -- スレッド数無関係
-    )
-    
-    -- ブロックをシャッフルしてランダム順序にする
-    blocks = BlockUtils.shuffle_blocks(blocks)
-    
-    -- 共有キューをセットアップ
-    BlockUtils.setup_shared_queue(self.data, blocks, "posteffect_queue")
+    self:setup_blocks("posteffect_queue")
     
     -- 各スレッドに対してワーカーを起動
     for i = 0, self.NUM_THREADS - 1 do
@@ -550,23 +527,22 @@ end
 
 -- PostEffect用コルーチン作成
 function RayTracer:create_posteffect_coroutine()
+    local WorkerUtils = require("workers.worker_utils")
     return coroutine.create(function()
         print("Starting PostEffect (Coroutine)...")
-        local startTime = app.get_ticks()
-        local frameAllowance = 12
         
-        for y = 0, self.height - 1 do
-            for x = 0, self.width - 1 do
-                self.current_scene_module.post_effect(self.data, x, y)
-                
-                if x % 100 == 0 then
-                    if (app.get_ticks() - startTime) >= frameAllowance then
-                        coroutine.yield()
-                        startTime = app.get_ticks()
-                    end
-                end
-            end
+        self:setup_blocks("posteffect_queue")
+        
+        local function process_callback(app_data, x, y)
+            self.current_scene_module.post_effect(app_data, x, y)
         end
+        
+        local function check_cancel()
+            coroutine.yield()
+            return false
+        end
+        
+        WorkerUtils.process_blocks(self.data, "posteffect_queue", "posteffect_queue_idx", process_callback, check_cancel)
         
         -- PostEffect完了後にswap
         self.data:swap()
