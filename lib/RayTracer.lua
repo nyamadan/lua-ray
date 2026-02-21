@@ -602,6 +602,7 @@ function RayTracer:on_ui()
             { id = "triangle", name = "Triangle" },
             { id = "sphere", name = "Sphere" },
             { id = "materialed_sphere", name = "MatSphere" },
+            { id = "wasd_camera", name = "WASD Camera" },
             { id = "posteffect", name = "PostEffect" },
             { id = "material_transfer", name = "MatTransfer" },
             { id = "gltf_box", name = "GLTF Box" },
@@ -671,6 +672,56 @@ function RayTracer:on_ui()
         end
     end
     ImGui.End()
+end
+
+-- キーボード入力を処理してカメラを移動させる
+function RayTracer:handle_keyboard()
+    if not app.get_keyboard_state then return end
+    
+    local state = app.get_keyboard_state()
+    if not state then return end
+    
+    -- シーンにカメラが存在するか確認
+    if not self.current_scene_module or not self.current_scene_module.get_camera then
+        return
+    end
+    
+    local camera = self.current_scene_module:get_camera()
+    if not camera then return end
+    
+    local moved = false
+    local speed = 0.5 -- 1フレームあたりの移動速度
+    
+    -- キーボードの状態に応じて移動
+    if state["w"] or state["up"] then
+        camera:move_forward(speed)
+        moved = true
+    end
+    if state["s"] or state["down"] then
+        camera:move_forward(-speed)
+        moved = true
+    end
+    if state["d"] or state["right"] then
+        camera:move_right(speed)
+        moved = true
+    end
+    if state["a"] or state["left"] then
+        camera:move_right(-speed)
+        moved = true
+    end
+    if state["e"] or state["space"] then
+        camera:move_up(speed)
+        moved = true
+    end
+    if state["q"] or state["c"] then
+        camera:move_up(-speed)
+        moved = true
+    end
+    
+    -- カメラが移動した場合、レイトレーシングをリセットして再描画
+    if moved then
+        self:reset_workers()
+    end
 end
 
 return RayTracer
