@@ -213,6 +213,7 @@ function RayTracer:reset_workers(clear_texture)
     if clear_texture then
         self:render()
     else
+        self.data:copy_front_to_back()
         self:render_without_clear()
     end
 end

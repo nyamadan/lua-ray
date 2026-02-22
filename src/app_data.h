@@ -40,6 +40,11 @@ public:
         std::swap(m_front_buffer, m_back_buffer);
     }
 
+    // フロントバッファをバックバッファにコピー
+    void copy_front_to_back() {
+        std::copy(m_front_buffer.begin(), m_front_buffer.end(), m_back_buffer.begin());
+    }
+
     // フロントバッファのデータ取得（テクスチャ更新用）
     const void* get_data() const {
         return m_front_buffer.data();

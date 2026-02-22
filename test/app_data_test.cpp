@@ -233,3 +233,32 @@ TEST_F(AppDataTest, PopNextIndexRespectsPresetValue) {
     EXPECT_EQ(data.pop_next_index("preset_counter"), 11);
 }
 
+// ========================================
+// copy_front_to_back テスト（TDD）
+// ========================================
+
+TEST_F(AppDataTest, CopyFrontToBackCopiesData) {
+    AppData data(10, 10);
+    
+    // バックバッファに書き込み
+    data.set_pixel(1, 1, 255, 0, 0);
+    
+    // swapでフロントに移動
+    data.swap();
+    
+    // 新しいバックバッファに別の色を書き込み (元の状態と区別するため)
+    data.set_pixel(1, 1, 0, 255, 0);
+    
+    // フロントからバックへコピー
+    data.copy_front_to_back();
+    
+    // 再度swapして、コピーされたバックバッファの内容をフロントとして確認
+    data.swap();
+    
+    // get_pixelでコピーされた値(赤)が取得できるはず
+    auto [r, g, b] = data.get_pixel(1, 1);
+    EXPECT_EQ(r, 255);
+    EXPECT_EQ(g, 0);
+    EXPECT_EQ(b, 0);
+}
+

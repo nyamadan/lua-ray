@@ -435,3 +435,55 @@ TEST_F(RayTracerTest, SingleThreadedStopOnCancel) {
     ASSERT_TRUE(stop_called) << "stop() should be called when rendering is cancelled";
 }
 
+// テスト: reset_workers(false) 時に copy_front_to_back が呼ばれる
+TEST_F(RayTracerTest, ResetWorkersCopiesFrontToBack) {
+    // モック設定
+    lua.script(R"(
+        app.init_video = function() return true end
+        app.create_window = function(w, h, title) return "mock_window" end
+        app.create_renderer = function(win) return "mock_renderer" end
+        app.create_texture = function(r, w, h) return "mock_texture" end
+        app.configure = function(config) end
+        app.destroy_texture = function(tex) end
+        app.update_texture = function(tex, data) end
+        app.update_texture_from_back = function(tex, data) end
+        app.get_ticks = function() return 0 end
+    )");
+
+    auto result = lua.safe_script(R"(
+        local RayTracer = require('lib.RayTracer')
+        local rt = RayTracer.new(100, 100)
+        rt:init()
+        
+        -- モックシーンモジュール
+        local mock_scene = {
+            setup = function() end,
+            start = function() end,
+            stop = function() end
+        }
+        rt.current_scene_module = mock_scene
+        
+        -- rt.data.copy_front_to_back が呼ばれたかどうかを記録
+        local copy_called = false
+        rt.data = {
+            copy_front_to_back = function(self)
+                copy_called = true
+            end
+        }
+        
+        -- レンダリング自体はモック化して実際には実行しない
+        rt.render = function() end
+        rt.render_without_clear = function() end
+        
+        -- テスト対象メソッドの実行 (clear_texture = false)
+        rt:reset_workers(false)
+        
+        return copy_called
+    )");
+    
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    bool copy_called = result;
+    ASSERT_TRUE(copy_called) << "rt.data:copy_front_to_back() should be called when clear_texture is false";
+}
+
+

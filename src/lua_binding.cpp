@@ -35,6 +35,7 @@ void bind_common_types(sol::state& lua) {
         "set_pixel", &AppData::set_pixel,
         "get_pixel", &AppData::get_pixel,
         "swap", &AppData::swap,
+        "copy_front_to_back", &AppData::copy_front_to_back,
         "width", &AppData::get_width,
         "height", &AppData::get_height,
         "clear", &AppData::clear,
