@@ -213,7 +213,6 @@ function RayTracer:reset_workers(clear_texture)
     if clear_texture then
         self:render()
     else
-        self.data:copy_front_to_back()
         self:render_without_clear()
     end
 end
@@ -397,6 +396,7 @@ function RayTracer:update()
             else
                 -- PostEffect無しの場合はswapしてフロントに反映
                 self.data:swap()
+                self.data:clear_back_buffer()
                 self:update_texture()
             end
         end
@@ -422,6 +422,7 @@ function RayTracer:update()
             else
                 -- PostEffect無しの場合はswapしてフロントに反映
                 self.data:swap()
+                self.data:clear_back_buffer()
                 self:update_texture()
                 
                 -- シーン終了
@@ -450,6 +451,7 @@ function RayTracer:update()
             self.posteffect_workers = {}
             -- PostEffect完了後にswap
             self.data:swap()
+            self.data:clear_back_buffer()
             self:update_texture()
         end
     
@@ -499,6 +501,7 @@ function RayTracer:start_posteffect()
     -- swap: フロントバッファ(完成画像) → バックバッファ(読み取り元)
     -- バックバッファ → フロントバッファへ書き込んで次回swap
     self.data:swap()
+    self.data:clear_back_buffer()
     
     if self.use_multithreading then
         self:start_posteffect_threads()
@@ -547,6 +550,7 @@ function RayTracer:create_posteffect_coroutine()
         
         -- PostEffect完了後にswap
         self.data:swap()
+        self.data:clear_back_buffer()
     end)
 end
 

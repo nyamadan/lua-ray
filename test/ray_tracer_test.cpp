@@ -435,8 +435,8 @@ TEST_F(RayTracerTest, SingleThreadedStopOnCancel) {
     ASSERT_TRUE(stop_called) << "stop() should be called when rendering is cancelled";
 }
 
-// テスト: reset_workers(false) 時に copy_front_to_back が呼ばれる
-TEST_F(RayTracerTest, ResetWorkersCopiesFrontToBack) {
+// テスト: reset_workers(false) 時に copy_front_to_back が呼ばれないこと(仕様変更)
+TEST_F(RayTracerTest, ResetWorkersDoesNotCopyFrontToBack) {
     // モック設定
     lua.script(R"(
         app.init_video = function() return true end
@@ -483,7 +483,31 @@ TEST_F(RayTracerTest, ResetWorkersCopiesFrontToBack) {
     
     ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
     bool copy_called = result;
-    ASSERT_TRUE(copy_called) << "rt.data:copy_front_to_back() should be called when clear_texture is false";
+    ASSERT_FALSE(copy_called) << "rt.data:copy_front_to_back() should not be called when clear_texture is false";
+}
+
+TEST_F(RayTracerTest, AppDataBindingCopyBackToFront) {
+    auto result = lua.safe_script(R"(
+        local RayTracer = require('lib.RayTracer')
+        local rt = RayTracer.new(100, 100)
+        rt:init()
+        
+        -- バックバッファに書き込み
+        rt.data:set_pixel(2, 2, 0, 0, 255)
+        
+        -- バックからフロントへコピー
+        rt.data:copy_back_to_front()
+        
+        -- get_pixelでフロントをチェック、コピーされた値(青)が取得できるはず
+        local r, g, b = rt.data:get_pixel(2, 2)
+        return r, g, b
+    )");
+    
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    std::tuple<int, int, int> rgb = result;
+    ASSERT_EQ(std::get<0>(rgb), 0);
+    ASSERT_EQ(std::get<1>(rgb), 0);
+    ASSERT_EQ(std::get<2>(rgb), 255);
 }
 
 

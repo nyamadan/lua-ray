@@ -45,6 +45,11 @@ public:
         std::copy(m_front_buffer.begin(), m_front_buffer.end(), m_back_buffer.begin());
     }
 
+    // バックバッファをフロントバッファにコピー
+    void copy_back_to_front() {
+        std::copy(m_back_buffer.begin(), m_back_buffer.end(), m_front_buffer.begin());
+    }
+
     // フロントバッファのデータ取得（テクスチャ更新用）
     const void* get_data() const {
         return m_front_buffer.data();
@@ -61,6 +66,11 @@ public:
     // 両バッファをクリア
     void clear() {
         std::fill(m_front_buffer.begin(), m_front_buffer.end(), 0xFF000000);
+        std::fill(m_back_buffer.begin(), m_back_buffer.end(), 0xFF000000);
+    }
+
+    // バックバッファのみをクリア
+    void clear_back_buffer() {
         std::fill(m_back_buffer.begin(), m_back_buffer.end(), 0xFF000000);
     }
 

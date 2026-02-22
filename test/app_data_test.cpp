@@ -262,3 +262,62 @@ TEST_F(AppDataTest, CopyFrontToBackCopiesData) {
     EXPECT_EQ(b, 0);
 }
 
+// ========================================
+// copy_back_to_front テスト（TDD）
+// ========================================
+
+TEST_F(AppDataTest, CopyBackToFrontCopiesData) {
+    AppData data(10, 10);
+    
+    // バックバッファに書き込み
+    data.set_pixel(2, 2, 0, 0, 255);
+    
+    // swap前（フロントにある初期値の色、真っ黒であることを確認）
+    auto [r1, g1, b1] = data.get_pixel(2, 2);
+    EXPECT_EQ(r1, 0);
+    EXPECT_EQ(g1, 0);
+    EXPECT_EQ(b1, 0);
+    
+    // バックからフロントへコピー
+    data.copy_back_to_front();
+    
+    // get_pixelでフロントをチェック、コピーされた値(青)が取得できるはず
+    auto [r2, g2, b2] = data.get_pixel(2, 2);
+    EXPECT_EQ(r2, 0);
+    EXPECT_EQ(g2, 0);
+    EXPECT_EQ(b2, 255);
+}
+
+// ========================================
+// clear_back_buffer テスト（TDD）
+// ========================================
+
+TEST_F(AppDataTest, ClearBackBufferClearsOnlyBackBuffer) {
+    AppData data(10, 10);
+    
+    // フロントとバックを異なる色で塗りつぶし
+    data.set_pixel(1, 1, 255, 0, 0); // バックを赤に
+    data.swap();
+    // ここでフロントの(1,1)が赤になる
+    
+    data.set_pixel(1, 1, 0, 255, 0); // 新しいバックを緑に
+    
+    // バックバッファのみクリア
+    data.clear_back_buffer();
+    
+    // 現在のフロントは赤のままのはず
+    auto [rF, gF, bF] = data.get_pixel(1, 1);
+    EXPECT_EQ(rF, 255);
+    EXPECT_EQ(gF, 0);
+    EXPECT_EQ(bF, 0);
+    
+    // swapして元バックだったバッファを確認
+    data.swap();
+    auto [rB, gB, bB] = data.get_pixel(1, 1);
+    
+    // AppData初期化のクリアカラーは(0,0,0) [Alphaは255]と想定されるため
+    EXPECT_EQ(rB, 0);
+    EXPECT_EQ(gB, 0);
+    EXPECT_EQ(bB, 0);
+}
+

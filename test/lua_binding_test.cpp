@@ -133,3 +133,18 @@ TEST_F(LuaBindingTest, MeasureDuration) {
     )");
     ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
 }
+
+TEST_F(LuaBindingTest, ClearBackBufferFromLua) {
+    auto result = lua.safe_script(R"(
+        local data = AppData.new(10, 10)
+        
+        -- 初期状態から何か描き込む
+        data:set_pixel(0, 0, 255, 255, 255)
+        
+        -- clear_back_bufferメソッドが呼び出せることの確認
+        data:clear_back_buffer()
+        
+        -- エラーが出ずに成功すればテストパス
+    )");
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+}
