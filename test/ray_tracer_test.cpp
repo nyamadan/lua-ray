@@ -487,6 +487,19 @@ TEST_F(RayTracerTest, ResetWorkersDoesNotCopyFrontToBack) {
 }
 
 TEST_F(RayTracerTest, AppDataBindingCopyBackToFront) {
+    // モック設定
+    lua.script(R"(
+        app.init_video = function() return true end
+        app.create_window = function(w, h, title) return "mock_window" end
+        app.create_renderer = function(win) return "mock_renderer" end
+        app.create_texture = function(r, w, h) return "mock_texture" end
+        app.configure = function(config) end
+        app.destroy_texture = function(tex) end
+        app.update_texture = function(tex, data) end
+        app.update_texture_from_back = function(tex, data) end
+        app.get_ticks = function() return 0 end
+    )");
+
     auto result = lua.safe_script(R"(
         local RayTracer = require('lib.RayTracer')
         local rt = RayTracer.new(100, 100)
