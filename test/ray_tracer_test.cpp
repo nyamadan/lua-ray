@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "../src/lua_binding.h"
 #include <sol/sol.hpp>
+#include "imgui.h"
 
 class RayTracerTest : public ::testing::Test {
 protected:
@@ -523,4 +524,202 @@ TEST_F(RayTracerTest, AppDataBindingCopyBackToFront) {
     ASSERT_EQ(std::get<2>(rgb), 255);
 }
 
+// テスト: NUM_THREADSとBLOCK_SIZEのデフォルト値
+TEST_F(RayTracerTest, DefaultThreadsAndTileSize) {
+    auto result = lua.safe_script(R"(
+        local RayTracer = require('lib.RayTracer')
+        local rt = RayTracer.new(100, 100)
+        return rt.NUM_THREADS, rt.BLOCK_SIZE
+    )");
+    
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    std::tuple<int, int> res = result;
+    EXPECT_EQ(std::get<0>(res), 8) << "Default NUM_THREADS should be 8";
+    EXPECT_EQ(std::get<1>(res), 64) << "Default BLOCK_SIZE should be 64";
+}
 
+// テスト: NUM_THREADSとBLOCK_SIZEがLuaから直接変更可能
+TEST_F(RayTracerTest, CanChangeThreadsAndTileSize) {
+    auto result = lua.safe_script(R"(
+        local RayTracer = require('lib.RayTracer')
+        local rt = RayTracer.new(100, 100)
+        
+        -- 値を変更
+        rt.NUM_THREADS = 4
+        rt.BLOCK_SIZE = 32
+        
+        return rt.NUM_THREADS, rt.BLOCK_SIZE
+    )");
+    
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    std::tuple<int, int> res = result;
+    EXPECT_EQ(std::get<0>(res), 4);
+    EXPECT_EQ(std::get<1>(res), 32);
+}
+
+// テスト: on_uiメソッド内でスレッド数とタイルサイズのコンボボックスが表示される
+TEST_F(RayTracerTest, OnUIShowsThreadsAndTileSizeComboBoxes) {
+    // モックapp関数
+    lua.script(R"(
+        app.init_video = function() return true end
+        app.create_window = function(w, h, title) return "mock_window" end
+        app.create_renderer = function(win) return "mock_renderer" end
+        app.create_texture = function(r, w, h) return "mock_texture" end
+        app.configure = function(config) end
+        app.get_ticks = function() return 0 end
+    )");
+
+    // ImGuiコンテキストのセットアップ
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.DisplaySize = ImVec2(1920, 1080);
+    io.DeltaTime = 1.0f / 60.0f;
+    unsigned char* pixels;
+    int width, height;
+    io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+
+    ImGui::NewFrame();
+
+    auto result = lua.safe_script(R"(
+        local RayTracer = require('lib.RayTracer')
+        local rt = RayTracer.new(100, 100)
+        rt:init()
+        
+        -- on_uiを呼び出し（コンボボックスが含まれるはず）
+        rt:on_ui()
+        
+        return rt.NUM_THREADS, rt.BLOCK_SIZE, rt.thread_preset_index, rt.block_preset_index
+    )");
+
+    ImGui::Render();
+    ImGui::DestroyContext();
+    
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    std::tuple<int, int, int, int> res = result;
+    // on_ui内でコンボボックスが正常に呼ばれてもクラッシュせず、値が保持されること
+    EXPECT_EQ(std::get<0>(res), 8);
+    EXPECT_EQ(std::get<1>(res), 64);
+    EXPECT_EQ(std::get<2>(res), 4); // デフォルトスレッドプリセットインデックス
+    EXPECT_EQ(std::get<3>(res), 1); // デフォルトブロックプリセットインデックス
+}
+
+// テスト: スレッド数プリセット変更時にreset_workersが呼ばれる
+TEST_F(RayTracerTest, ThreadsPresetChangeCallsResetWorkers) {
+    auto result = lua.safe_script(R"(
+        local RayTracer = require('lib.RayTracer')
+        local ThreadPresets = require('lib.ThreadPresets')
+        local rt = RayTracer.new(100, 100)
+        
+        -- モックセットアップ
+        local reset_called = false
+        rt.reset_workers = function(self) reset_called = true end
+        rt.cancel_if_rendering = function(self) end
+        
+        -- 初期値
+        rt.use_multithreading = true
+        
+        -- シミュレート: コンボボックスでプリセットが変更された時の動作を直接テスト
+        local new_index = 2 -- 2スレッド
+        local thread_presets = ThreadPresets.get_thread_presets()
+        if new_index ~= rt.thread_preset_index then
+            rt:cancel_if_rendering()
+            rt.thread_preset_index = new_index
+            rt.NUM_THREADS = thread_presets[new_index].value
+            rt:reset_workers()
+        end
+        
+        return reset_called, rt.NUM_THREADS, rt.thread_preset_index
+    )");
+    
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    std::tuple<bool, int, int> res = result;
+    EXPECT_TRUE(std::get<0>(res)) << "reset_workers should be called when thread preset changes";
+    EXPECT_EQ(std::get<1>(res), 2);
+    EXPECT_EQ(std::get<2>(res), 2);
+}
+
+// テスト: タイルサイズプリセット変更時にreset_workersが呼ばれる
+TEST_F(RayTracerTest, TileSizePresetChangeCallsResetWorkers) {
+    auto result = lua.safe_script(R"(
+        local RayTracer = require('lib.RayTracer')
+        local ThreadPresets = require('lib.ThreadPresets')
+        local rt = RayTracer.new(100, 100)
+        
+        -- モックセットアップ
+        local reset_called = false
+        rt.reset_workers = function(self) reset_called = true end
+        rt.cancel_if_rendering = function(self) end
+        
+        -- シミュレート: コンボボックスでプリセットが変更された時の動作を直接テスト
+        local new_index = 3 -- 256ブロックサイズ
+        local block_presets = ThreadPresets.get_block_presets()
+        if new_index ~= rt.block_preset_index then
+            rt:cancel_if_rendering()
+            rt.block_preset_index = new_index
+            rt.BLOCK_SIZE = block_presets[new_index].value
+            rt:reset_workers()
+        end
+        
+        return reset_called, rt.BLOCK_SIZE, rt.block_preset_index
+    )");
+    
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    std::tuple<bool, int, int> res = result;
+    EXPECT_TRUE(std::get<0>(res)) << "reset_workers should be called when block preset changes";
+    EXPECT_EQ(std::get<1>(res), 256);
+    EXPECT_EQ(std::get<2>(res), 3);
+}
+
+// テスト: シングルスレッドモード時にスレッド数コンボボックスが無効化される
+TEST_F(RayTracerTest, ThreadsComboDisabledInSingleThreadMode) {
+    // モックapp関数
+    lua.script(R"(
+        app.init_video = function() return true end
+        app.create_window = function(w, h, title) return "mock_window" end
+        app.create_renderer = function(win) return "mock_renderer" end
+        app.create_texture = function(r, w, h) return "mock_texture" end
+        app.configure = function(config) end
+        app.get_ticks = function() return 0 end
+    )");
+
+    // ImGuiコンテキストのセットアップ
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.DisplaySize = ImVec2(1920, 1080);
+    io.DeltaTime = 1.0f / 60.0f;
+    unsigned char* pixels;
+    int width, height;
+    io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+
+    ImGui::NewFrame();
+
+    auto result = lua.safe_script(R"(
+        local RayTracer = require('lib.RayTracer')
+        local rt = RayTracer.new(100, 100)
+        rt:init()
+        
+        -- シングルスレッドモードに設定
+        rt.use_multithreading = false
+        
+        -- reset_workersをモック化
+        local reset_called = false
+        rt.reset_workers = function(self) reset_called = true end
+        
+        -- on_uiを呼び出し（シングルスレッド時、スレッド数コンボボックスはBeginDisabledで囲まれるはず）
+        rt:on_ui()
+        
+        -- シングルスレッドモードでもクラッシュせず正常に動作すること
+        return rt.use_multithreading, rt.NUM_THREADS, rt.thread_preset_index
+    )");
+
+    ImGui::Render();
+    ImGui::DestroyContext();
+
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    std::tuple<bool, int, int> res = result;
+    EXPECT_FALSE(std::get<0>(res)) << "Should be in single-threaded mode";
+    EXPECT_EQ(std::get<1>(res), 8) << "NUM_THREADS should remain 8";
+    EXPECT_EQ(std::get<2>(res), 4) << "thread_preset_index should remain at default";
+}

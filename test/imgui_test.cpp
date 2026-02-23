@@ -88,3 +88,39 @@ TEST_F(ImGuiTest, LuaBindDisabled) {
     
     ImGui::Render();
 }
+
+// テスト: ImGui.InputInt がLuaから呼び出せ、(changed, value) の2つの戻り値を返す
+TEST_F(ImGuiTest, LuaBindInputInt) {
+    sol::state lua;
+    lua.open_libraries(sol::lib::base);
+    bind_imgui(lua);
+
+    // Setup IO for NewFrame
+    ImGuiIO& io = ImGui::GetIO();
+    io.DisplaySize = ImVec2(1920, 1080);
+    io.DeltaTime = 1.0f / 60.0f;
+
+    ImGui::NewFrame();
+
+    auto result = lua.safe_script(R"(
+        ImGui.Begin("InputInt Test")
+        
+        -- InputInt は (changed, new_value) を返すはず
+        local changed, value = ImGui.InputInt("Test Value", 42)
+        
+        ImGui.End()
+        return type(changed), type(value), value
+    )");
+
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    std::tuple<std::string, std::string, int> res = result;
+    
+    // changed は boolean 型であること
+    EXPECT_EQ(std::get<0>(res), "boolean");
+    // value は number 型であること
+    EXPECT_EQ(std::get<1>(res), "number");
+    // 入力がないので値は元のまま 42
+    EXPECT_EQ(std::get<2>(res), 42);
+
+    ImGui::Render();
+}

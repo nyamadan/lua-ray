@@ -11,7 +11,7 @@ local WorkerUtils = {}
 -- @param process_callback (app_data, x, y) -> void
 -- @param check_cancel_callback () -> boolean キャンセルチェック用コールバック
 -- @param time_source table|nil 時間計測用オブジェクト (get_ticksメソッドを持つ)。nilの場合はglobal 'app'を使用
-function WorkerUtils.process_blocks(app_data, queue_key, index_key, process_callback, check_cancel_callback, time_source)
+function WorkerUtils.process_blocks(app_data, queue_key, index_key, process_callback, check_cancel_callback, time_source, on_block_complete)
     local timer = time_source or app
     
     -- 動的キャンセルチェック用の変数
@@ -58,6 +58,11 @@ function WorkerUtils.process_blocks(app_data, queue_key, index_key, process_call
                 -- 推定時間を更新
                 estimated_time = estimated_time + time_avg:get()
             end
+        end
+        
+        -- ブロック完了コールバック
+        if on_block_complete then
+            on_block_complete()
         end
     end
 end

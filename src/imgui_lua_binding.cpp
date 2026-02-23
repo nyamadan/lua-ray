@@ -56,4 +56,10 @@ void bind_imgui(sol::state& lua) {
         [](const char* label) -> bool { return ImGui::Selectable(label); },
         [](const char* label, bool selected) -> bool { return ImGui::Selectable(label, selected); }
     ));
+
+    // InputInt: Luaでは参照渡しできないため、(changed, new_value)のタプルを返す
+    imgui.set_function("InputInt", [](const char* label, int value) -> std::tuple<bool, int> {
+        bool changed = ImGui::InputInt(label, &value);
+        return std::make_tuple(changed, value);
+    });
 }

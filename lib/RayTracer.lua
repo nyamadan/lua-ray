@@ -1,6 +1,7 @@
 -- RayTracer Class Definition
 local BlockUtils = require("lib.BlockUtils")
 local ResolutionPresets = require("lib.ResolutionPresets")
+local ThreadPresets = require("lib.ThreadPresets")
 
 RayTracer = {}
 RayTracer.__index = RayTracer
@@ -25,6 +26,8 @@ function RayTracer.new(width, height)
     self.BLOCK_SIZE = 64 -- ブロックサイズ
     self.render_start_time = 0 -- Rendering start time
     self.current_preset_index = ResolutionPresets.get_default_index() -- 解像度プリセットインデックス
+    self.thread_preset_index = ThreadPresets.get_default_thread_index() -- スレッド数プリセットインデックス
+    self.block_preset_index = ThreadPresets.get_default_block_index() -- ブロックサイズプリセットインデックス
     return self
 end
 
@@ -363,7 +366,12 @@ function RayTracer:create_render_coroutine()
             return false
         end
         
-        WorkerUtils.process_blocks(self.data, "render_queue", "render_queue_idx", process_callback, check_cancel)
+        -- 1ブロック完了ごとにyield（既存の12msチェックも維持）
+        local function on_block_complete()
+            coroutine.yield()
+        end
+        
+        WorkerUtils.process_blocks(self.data, "render_queue", "render_queue_idx", process_callback, check_cancel, nil, on_block_complete)
         
         print(string.format("Single-threaded render finished internally."))
     end)
@@ -546,7 +554,12 @@ function RayTracer:create_posteffect_coroutine()
             return false
         end
         
-        WorkerUtils.process_blocks(self.data, "posteffect_queue", "posteffect_queue_idx", process_callback, check_cancel)
+        -- 1ブロック完了ごとにyield（既存の12msチェックも維持）
+        local function on_block_complete()
+            coroutine.yield()
+        end
+        
+        WorkerUtils.process_blocks(self.data, "posteffect_queue", "posteffect_queue_idx", process_callback, check_cancel, nil, on_block_complete)
         
         -- PostEffect完了後にswap
         self.data:swap()
@@ -577,6 +590,46 @@ function RayTracer:on_ui()
                 self.use_multithreading = true
                 self:render()
             end
+        end
+
+        ImGui.Separator()
+        
+        -- スレッド数設定（シングルスレッドモード時は無効化）
+        ImGui.BeginDisabled(not self.use_multithreading)
+        local thread_presets = ThreadPresets.get_thread_presets()
+        local thread_preview = thread_presets[self.thread_preset_index] and thread_presets[self.thread_preset_index].name or "Unknown"
+        if ImGui.BeginCombo("Threads", thread_preview) then
+            for i, preset in ipairs(thread_presets) do
+                local is_selected = (i == self.thread_preset_index)
+                if ImGui.Selectable(preset.name, is_selected) then
+                    if i ~= self.thread_preset_index then
+                        self:cancel_if_rendering()
+                        self.thread_preset_index = i
+                        self.NUM_THREADS = preset.value
+                        self:reset_workers()
+                    end
+                end
+            end
+            ImGui.EndCombo()
+        end
+        ImGui.EndDisabled()
+
+        -- タイルサイズ設定
+        local block_presets = ThreadPresets.get_block_presets()
+        local block_preview = block_presets[self.block_preset_index] and block_presets[self.block_preset_index].name or "Unknown"
+        if ImGui.BeginCombo("Tile Size", block_preview) then
+            for i, preset in ipairs(block_presets) do
+                local is_selected = (i == self.block_preset_index)
+                if ImGui.Selectable(preset.name, is_selected) then
+                    if i ~= self.block_preset_index then
+                        self:cancel_if_rendering()
+                        self.block_preset_index = i
+                        self.BLOCK_SIZE = preset.value
+                        self:reset_workers()
+                    end
+                end
+            end
+            ImGui.EndCombo()
         end
 
         ImGui.Separator()
