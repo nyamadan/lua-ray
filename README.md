@@ -104,3 +104,9 @@ ctest --preset gcc-debug -R worker  # "worker" を含むテストを実行
 ## ライセンス
 
 このプロジェクトは [MIT License](LICENSE) の下で公開されています。
+
+### サードパーティアセット
+
+| アセット | ライセンス | 出典 |
+|---------|-----------|------|
+| [BoxTextured.glb](assets/BoxTextured.glb) | [CC-BY 4.0 International](https://creativecommons.org/licenses/by/4.0/) | © 2017, [Cesium](https://cesium.com/). [glTF-Sample-Assets](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/BoxTextured) |

@@ -48,8 +48,8 @@ public:
     void commit();
     void release();
     
-    // Return hit, t, nx, ny, nz, geomID, primID
-    std::tuple<bool, float, float, float, float, unsigned int, unsigned int> intersect(float ox, float oy, float oz, float dx, float dy, float dz);
+    // Return hit, t, nx, ny, nz, geomID, primID, baryU, baryV
+    std::tuple<bool, float, float, float, float, unsigned int, unsigned int, float, float> intersect(float ox, float oy, float oz, float dx, float dy, float dz);
 
 private:
     RTCDevice device; // We might need to store device if we create geometries later, but add_sphere uses it.

@@ -668,6 +668,7 @@ function RayTracer:on_ui()
             { id = "posteffect", name = "PostEffect" },
             { id = "material_transfer", name = "MatTransfer" },
             { id = "gltf_box", name = "GLTF Box" },
+            { id = "gltf_box_textured", name = "GLTF BoxTex" },
             { id = "test_lifecycle", name = "Test Lifecycle" },
             { id = "raytracing_weekend", name = "RTWeekend" },
             { id = "cornell_box", name = "CornellBox" },

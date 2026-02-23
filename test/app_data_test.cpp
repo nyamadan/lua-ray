@@ -321,3 +321,74 @@ TEST_F(AppDataTest, ClearBackBufferClearsOnlyBackBuffer) {
     EXPECT_EQ(bB, 0);
 }
 
+// ========================================
+// GltfData キャッシュテスト（TDD）
+// ========================================
+
+TEST_F(AppDataTest, LoadGltfAndGetGltf) {
+    AppData data(10, 10);
+
+    // glTFファイルをロード
+    EXPECT_TRUE(data.load_gltf("box", "assets/Box.glb"));
+
+    // キャッシュから取得
+    auto gltf = data.get_gltf("box");
+    ASSERT_NE(gltf, nullptr);
+    EXPECT_TRUE(gltf->isLoaded());
+    EXPECT_EQ(gltf->getMeshCount(), 1u);
+}
+
+TEST_F(AppDataTest, LoadGltfCachesAndSkipsDuplicate) {
+    AppData data(10, 10);
+
+    // 同じ名前で2回ロード → 2回目はスキップ（成功を返す）
+    EXPECT_TRUE(data.load_gltf("box", "assets/Box.glb"));
+    EXPECT_TRUE(data.load_gltf("box", "assets/Box.glb"));
+
+    auto gltf = data.get_gltf("box");
+    ASSERT_NE(gltf, nullptr);
+}
+
+TEST_F(AppDataTest, GetGltfReturnsNullForUnknownKey) {
+    AppData data(10, 10);
+    EXPECT_EQ(data.get_gltf("nonexistent"), nullptr);
+}
+
+TEST_F(AppDataTest, LoadGltfFailsForInvalidPath) {
+    AppData data(10, 10);
+    EXPECT_FALSE(data.load_gltf("bad", "nonexistent.glb"));
+    EXPECT_EQ(data.get_gltf("bad"), nullptr);
+}
+
+// ========================================
+// TextureImage キャッシュテスト（TDD）
+// ========================================
+
+TEST_F(AppDataTest, LoadTextureImageFromGltf) {
+    AppData data(10, 10);
+
+    // まず glTF をロード
+    ASSERT_TRUE(data.load_gltf("boxtex", "assets/BoxTextured.glb"));
+
+    // テクスチャ画像をロード
+    EXPECT_TRUE(data.load_texture_image("boxtex_0", "boxtex", 0));
+
+    // キャッシュから取得
+    auto image = data.get_texture_image("boxtex_0");
+    ASSERT_NE(image, nullptr);
+    EXPECT_GT(image->width, 0);
+    EXPECT_GT(image->height, 0);
+    EXPECT_FALSE(image->pixels.empty());
+}
+
+TEST_F(AppDataTest, GetTextureImageReturnsNullForUnknownKey) {
+    AppData data(10, 10);
+    EXPECT_EQ(data.get_texture_image("nonexistent"), nullptr);
+}
+
+TEST_F(AppDataTest, LoadTextureImageFailsWithoutGltf) {
+    AppData data(10, 10);
+
+    // GltfData がロードされていない場合は失敗
+    EXPECT_FALSE(data.load_texture_image("tex", "missing_gltf", 0));
+}
