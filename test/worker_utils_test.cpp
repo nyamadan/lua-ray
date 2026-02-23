@@ -119,3 +119,57 @@ TEST_F(WorkerUtilsTest, BlockProcessLoopStopsOnCancel) {
     ASSERT_LT(call_count, 10000); // 全部終わる前に止まるはず
     ASSERT_GE(call_count, 10);    // 少なくとも10回は動く
 }
+
+// テスト: on_block_complete コールバックが各ブロック完了後に呼ばれる
+TEST_F(WorkerUtilsTest, OnBlockCompleteCallbackCalledPerBlock) {
+    lua.new_usertype<AppData>("MockAppData",
+        "set_string", &AppData::set_string,
+        "get_string", &AppData::get_string,
+        "pop_next_index", &AppData::pop_next_index
+    );
+    
+    AppData data(100, 100);
+    lua["app_data"] = &data;
+    
+    sol::table app = lua.create_table();
+    app.set_function("get_ticks", []() { return 0; });
+    lua["app"] = app;
+
+    lua.script(R"(
+        local WorkerUtils = require("workers.worker_utils")
+        local BlockUtils = require("lib.BlockUtils")
+        
+        -- 3つのブロックをセットアップ
+        local blocks = {
+            {x = 0, y = 0, w = 5, h = 5},
+            {x = 5, y = 0, w = 5, h = 5},
+            {x = 0, y = 5, w = 5, h = 5}
+        }
+        BlockUtils.setup_shared_queue(app_data, blocks, "test_obc_queue", "test_obc_idx")
+        
+        pixel_count = 0
+        block_complete_count = 0
+        
+        local function process_callback(app_data, x, y)
+            pixel_count = pixel_count + 1
+        end
+        
+        local function check_cancel()
+            return false
+        end
+        
+        -- ブロック完了コールバック
+        local function on_block_complete()
+            block_complete_count = block_complete_count + 1
+        end
+        
+        WorkerUtils.process_blocks(app_data, "test_obc_queue", "test_obc_idx", process_callback, check_cancel, app, on_block_complete)
+    )");
+    
+    int pixel_count = lua["pixel_count"];
+    int block_complete_count = lua["block_complete_count"];
+    // 3ブロック × 5×5 = 75ピクセル
+    ASSERT_EQ(pixel_count, 75);
+    // 3ブロック完了コールバック
+    ASSERT_EQ(block_complete_count, 3);
+}
