@@ -139,6 +139,49 @@ function BlockUtils.shuffle_blocks(blocks, seed)
 end
 
 -- ========================================
+-- ソート
+-- ========================================
+
+--- ブロック配列を指定された座標に近いものから順にソートする
+--- 元の配列は変更せず、新しい配列を返す
+--- @param blocks table ブロックの配列
+--- @param center_x number 基準となるX座標
+--- @param center_y number 基準となるY座標
+--- @return table ソートされたブロック配列（新規テーブル）
+function BlockUtils.sort_blocks_by_distance(blocks, center_x, center_y)
+    -- 元の配列をコピー
+    local sorted = {}
+    for i, block in ipairs(blocks) do
+        -- ブロックの中心座標を計算して距離を事前計算
+        local bx = block.x + block.w / 2
+        local by = block.y + block.h / 2
+        local dist_sq = (bx - center_x) * (bx - center_x) + (by - center_y) * (by - center_y)
+        
+        table.insert(sorted, {
+            block = block,
+            dist_sq = dist_sq,
+            original_index = i -- 安定ソートのため
+        })
+    end
+    
+    -- 距離の二乗でソート
+    table.sort(sorted, function(a, b)
+        if a.dist_sq == b.dist_sq then
+            return a.original_index < b.original_index
+        end
+        return a.dist_sq < b.dist_sq
+    end)
+    
+    -- 元のブロック形式に戻す
+    local result = {}
+    for i, item in ipairs(sorted) do
+        result[i] = item.block
+    end
+    
+    return result
+end
+
+-- ========================================
 -- 共有キュー（排他的pull方式）
 -- ========================================
 
