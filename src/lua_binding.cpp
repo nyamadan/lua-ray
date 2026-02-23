@@ -44,7 +44,65 @@ void bind_common_types(sol::state& lua) {
         "set_string", &AppData::set_string,
         "get_string", &AppData::get_string,
         "has_string", &AppData::has_string,
-        "pop_next_index", &AppData::pop_next_index
+        "pop_next_index", &AppData::pop_next_index,
+        "load_gltf", &AppData::load_gltf,
+        "load_texture_image", &AppData::load_texture_image,
+        "get_texture_image", [&lua](AppData& self, const std::string& name) -> sol::object {
+            auto image = self.get_texture_image(name);
+            if (!image) {
+                return sol::make_object(lua, sol::nil);
+            }
+            sol::table result = lua.create_table();
+            result["width"] = image->width;
+            result["height"] = image->height;
+            result["channels"] = image->channels;
+            // ピクセルデータをLuaテーブル（1-indexed）として返す
+            sol::table pixels = lua.create_table(static_cast<int>(image->pixels.size()), 0);
+            for (size_t i = 0; i < image->pixels.size(); ++i) {
+                pixels[i + 1] = static_cast<int>(image->pixels[i]);
+            }
+            result["pixels"] = pixels;
+            return sol::make_object(lua, result);
+        },
+        "get_gltf_tex_coords", [&lua](AppData& self, const std::string& gltf_name, size_t mesh_idx, size_t prim_idx) -> sol::object {
+            auto gltf = self.get_gltf(gltf_name);
+            if (!gltf) {
+                return sol::make_object(lua, sol::nil);
+            }
+            auto coords = gltf->getTexCoords(mesh_idx, prim_idx);
+            if (coords.empty()) {
+                return sol::make_object(lua, sol::nil);
+            }
+            // sol2 は std::vector<float> を自動的にLuaテーブルに変換
+            return sol::make_object(lua, coords);
+        },
+        "get_gltf_indices", [&lua](AppData& self, const std::string& gltf_name, size_t mesh_idx, size_t prim_idx) -> sol::object {
+            auto gltf = self.get_gltf(gltf_name);
+            if (!gltf) {
+                return sol::make_object(lua, sol::nil);
+            }
+            auto indices = gltf->getIndices(mesh_idx, prim_idx);
+            if (indices.empty()) {
+                return sol::make_object(lua, sol::nil);
+            }
+            return sol::make_object(lua, indices);
+        },
+        "get_gltf_vertices", [&lua](AppData& self, const std::string& gltf_name, size_t mesh_idx, size_t prim_idx) -> sol::object {
+            auto gltf = self.get_gltf(gltf_name);
+            if (!gltf) {
+                return sol::make_object(lua, sol::nil);
+            }
+            auto verts = gltf->getVertices(mesh_idx, prim_idx);
+            if (verts.empty()) {
+                return sol::make_object(lua, sol::nil);
+            }
+            return sol::make_object(lua, verts);
+        },
+        "get_gltf_mesh_count", [](AppData& self, const std::string& gltf_name) -> int {
+            auto gltf = self.get_gltf(gltf_name);
+            if (!gltf) return 0;
+            return static_cast<int>(gltf->getMeshCount());
+        }
     );
 
     // Bind GltfData (glTFファイル読み込み)
@@ -55,6 +113,21 @@ void bind_common_types(sol::state& lua) {
         "get_mesh_count", &GltfData::getMeshCount,
         "get_vertices", &GltfData::getVertices,
         "get_indices", &GltfData::getIndices,
+        "get_tex_coords", &GltfData::getTexCoords,
+        "get_texture_image", [&lua](GltfData& self, size_t index) -> sol::table {
+            auto image = self.getTextureImage(index);
+            sol::table result = lua.create_table();
+            result["width"] = image.width;
+            result["height"] = image.height;
+            result["channels"] = image.channels;
+            // ピクセルデータをLuaテーブル（1-indexed）として返す
+            sol::table pixels = lua.create_table(static_cast<int>(image.pixels.size()), 0);
+            for (size_t i = 0; i < image.pixels.size(); ++i) {
+                pixels[i + 1] = static_cast<int>(image.pixels[i]);
+            }
+            result["pixels"] = pixels;
+            return result;
+        },
         "release", &GltfData::release
     );
 }

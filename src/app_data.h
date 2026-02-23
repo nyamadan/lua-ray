@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <string>
 #include <mutex>
+#include <memory>
+#include "gltf_loader.h"
 
 class AppData {
 public:
@@ -107,6 +109,74 @@ public:
         return current;
     }
 
+    // ================================================================
+    // GltfData キャッシュ（スレッド間 readonly 共有）
+    // ================================================================
+
+    // glTFファイルをロードしてキャッシュに格納（既にロード済みの場合はスキップ）
+    // @return true: ロード成功（または既にロード済み）, false: ロード失敗
+    bool load_gltf(const std::string& name, const std::string& path) {
+        std::lock_guard<std::mutex> lock(m_resource_mutex);
+        // 既にロード済みならスキップ
+        if (m_gltf_cache.find(name) != m_gltf_cache.end()) {
+            return true;
+        }
+        auto gltf = std::make_shared<GltfData>();
+        if (!gltf->load(path)) {
+            return false;
+        }
+        m_gltf_cache[name] = std::move(gltf);
+        return true;
+    }
+
+    // キャッシュされた GltfData を取得（readonly）
+    // @return 見つからない場合は nullptr
+    std::shared_ptr<GltfData> get_gltf(const std::string& name) const {
+        std::lock_guard<std::mutex> lock(m_resource_mutex);
+        auto it = m_gltf_cache.find(name);
+        if (it != m_gltf_cache.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    // ================================================================
+    // TextureImage キャッシュ（スレッド間 readonly 共有）
+    // ================================================================
+
+    // GltfData からテクスチャ画像をデコードしてキャッシュに格納
+    // @param name キャッシュキー
+    // @param gltf_name GltfDataキャッシュのキー
+    // @param texture_index テクスチャインデックス
+    // @return true: 成功（または既にロード済み）, false: 失敗
+    bool load_texture_image(const std::string& name, const std::string& gltf_name, size_t texture_index) {
+        std::lock_guard<std::mutex> lock(m_resource_mutex);
+        // 既にロード済みならスキップ
+        if (m_texture_cache.find(name) != m_texture_cache.end()) {
+            return true;
+        }
+        auto gltf_it = m_gltf_cache.find(gltf_name);
+        if (gltf_it == m_gltf_cache.end() || !gltf_it->second) {
+            return false;
+        }
+        auto image = std::make_shared<TextureImage>(gltf_it->second->getTextureImage(texture_index));
+        if (image->width == 0 || image->height == 0) {
+            return false;
+        }
+        m_texture_cache[name] = std::move(image);
+        return true;
+    }
+
+    // キャッシュされた TextureImage を取得（readonly）
+    std::shared_ptr<TextureImage> get_texture_image(const std::string& name) const {
+        std::lock_guard<std::mutex> lock(m_resource_mutex);
+        auto it = m_texture_cache.find(name);
+        if (it != m_texture_cache.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+
 private:
     int m_width;
     int m_height;
@@ -116,5 +186,11 @@ private:
     // 文字列ストレージ（スレッド間データ共有用）
     std::unordered_map<std::string, std::string> m_string_storage;
     mutable std::mutex m_string_mutex;
+
+    // リソースキャッシュ（スレッド間 readonly 共有用）
+    std::unordered_map<std::string, std::shared_ptr<GltfData>> m_gltf_cache;
+    std::unordered_map<std::string, std::shared_ptr<TextureImage>> m_texture_cache;
+    mutable std::mutex m_resource_mutex;
 };
+
 

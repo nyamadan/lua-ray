@@ -131,8 +131,8 @@ void EmbreeScene::commit() {
     }
 }
 
-std::tuple<bool, float, float, float, float, unsigned int, unsigned int> EmbreeScene::intersect(float ox, float oy, float oz, float dx, float dy, float dz) {
-    if (!scene) return {false, 0.0f, 0.0f, 0.0f, 0.0f, RTC_INVALID_GEOMETRY_ID, RTC_INVALID_GEOMETRY_ID};
+std::tuple<bool, float, float, float, float, unsigned int, unsigned int, float, float> EmbreeScene::intersect(float ox, float oy, float oz, float dx, float dy, float dz) {
+    if (!scene) return {false, 0.0f, 0.0f, 0.0f, 0.0f, RTC_INVALID_GEOMETRY_ID, RTC_INVALID_GEOMETRY_ID, 0.0f, 0.0f};
 
     RTCRayHit rayhit;
     rayhit.ray.org_x = ox; rayhit.ray.org_y = oy; rayhit.ray.org_z = oz;
@@ -155,9 +155,9 @@ std::tuple<bool, float, float, float, float, unsigned int, unsigned int> EmbreeS
         if (len > 0) {
             nx /= len; ny /= len; nz /= len;
         }
-        return {true, rayhit.ray.tfar, nx, ny, nz, rayhit.hit.geomID, rayhit.hit.primID};
+        return {true, rayhit.ray.tfar, nx, ny, nz, rayhit.hit.geomID, rayhit.hit.primID, rayhit.hit.u, rayhit.hit.v};
     } else {
-        return {false, 0.0f, 0.0f, 0.0f, 0.0f, RTC_INVALID_GEOMETRY_ID, RTC_INVALID_GEOMETRY_ID};
+        return {false, 0.0f, 0.0f, 0.0f, 0.0f, RTC_INVALID_GEOMETRY_ID, RTC_INVALID_GEOMETRY_ID, 0.0f, 0.0f};
     }
 }
 

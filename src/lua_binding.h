@@ -14,6 +14,8 @@ struct AppContext {
     SDL_Texture* texture = nullptr;
 };
 
+// Bind common types (AppData, Embree, GltfData) to any Lua state.
+void bind_common_types(sol::state& lua);
 // Bind Lua functions.
 void bind_lua(sol::state& lua, AppContext& ctx);
 // Bind Lua functions for worker threads.
