@@ -723,3 +723,157 @@ TEST_F(RayTracerTest, ThreadsComboDisabledInSingleThreadMode) {
     EXPECT_EQ(std::get<1>(res), 8) << "NUM_THREADS should remain 8";
     EXPECT_EQ(std::get<2>(res), 4) << "thread_preset_index should remain at default";
 }
+
+// ========================================
+// setup_blocks テスト (マウス位置優先レンダリング)
+// ========================================
+
+TEST_F(RayTracerTest, SetupBlocksUsesShuffleWhenNoMousePosition) {
+    auto result = lua.safe_script(R"(
+        local RayTracer = require('lib.RayTracer')
+        local BlockUtils = require('lib.BlockUtils')
+        
+        local rt = RayTracer.new(100, 100)
+        rt.data = { set_string = function() end } -- Mock AppData
+        
+        -- モックBlockUtils関数
+        local shuffle_called = false
+        local sort_called = false
+        
+        local original_shuffle = BlockUtils.shuffle_blocks
+        local original_sort = BlockUtils.sort_blocks_by_distance
+        
+        BlockUtils.shuffle_blocks = function(blocks)
+            shuffle_called = true
+            return blocks
+        end
+        
+        BlockUtils.sort_blocks_by_distance = function(blocks, x, y)
+            sort_called = true
+            return blocks
+        end
+        
+        -- Exec (マウス位置なし)
+        rt:setup_blocks("test_queue")
+        
+        -- 元に戻す
+        BlockUtils.shuffle_blocks = original_shuffle
+        BlockUtils.sort_blocks_by_distance = original_sort
+        
+        return shuffle_called, sort_called
+    )");
+    
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    std::tuple<bool, bool> res = result;
+    EXPECT_TRUE(std::get<0>(res)) << "shuffle_blocks should be called when no mouse position is set";
+    EXPECT_FALSE(std::get<1>(res)) << "sort_blocks_by_distance should not be called";
+}
+
+TEST_F(RayTracerTest, SetupBlocksUsesSortWhenMousePositionExists) {
+    auto result = lua.safe_script(R"(
+        local RayTracer = require('lib.RayTracer')
+        local BlockUtils = require('lib.BlockUtils')
+        
+        local rt = RayTracer.new(100, 100)
+        rt.data = { set_string = function() end } -- Mock AppData
+        
+        -- マウス位置を設定
+        rt.mouse_x = 50
+        rt.mouse_y = 50
+        
+        -- モックBlockUtils関数
+        local shuffle_called = false
+        local sort_called = false
+        
+        local original_shuffle = BlockUtils.shuffle_blocks
+        local original_sort = BlockUtils.sort_blocks_by_distance
+        
+        BlockUtils.shuffle_blocks = function(blocks)
+            shuffle_called = true
+            return blocks
+        end
+        
+        BlockUtils.sort_blocks_by_distance = function(blocks, x, y)
+            sort_called = true
+            return blocks
+        end
+        
+        -- Exec
+        rt:setup_blocks("test_queue")
+        
+        -- 元に戻す
+        BlockUtils.shuffle_blocks = original_shuffle
+        BlockUtils.sort_blocks_by_distance = original_sort
+        
+        return shuffle_called, sort_called
+    )");
+    
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    std::tuple<bool, bool> res = result;
+    EXPECT_FALSE(std::get<0>(res)) << "shuffle_blocks should not be called when mouse position exists";
+    EXPECT_TRUE(std::get<1>(res)) << "sort_blocks_by_distance should be called";
+}
+
+// ========================================
+// handle_mouse テスト (マウス位置保存の確認)
+// ========================================
+
+TEST_F(RayTracerTest, HandleMouseSavesMousePosition) {
+    auto result = lua.safe_script(R"(
+        local RayTracer = require('lib.RayTracer')
+        local rt = RayTracer.new(100, 100)
+        
+        -- モックapp関数
+        app.get_mouse_state = function()
+            return {
+                x = 123.0,
+                y = 456.0,
+                rel_x = 10.0,
+                rel_y = 5.0,
+                right = true -- 右ドラッグ中
+            }
+        end
+        app.get_ticks = function() return 0 end
+        app.init_video = function() return true end
+        app.create_window = function(w, h, title) return "mock_window" end
+        app.create_renderer = function(win) return "mock_renderer" end
+        app.create_texture = function(r, w, h) return "mock_texture" end
+        app.configure = function(config) end
+
+        rt:init()
+        
+        -- モックカメラ設定
+        local mock_camera = {
+            rotate = function(self, yaw, pitch) end
+        }
+        local mock_scene = {
+            get_camera = function() return mock_camera end
+        }
+        rt.current_scene_module = mock_scene
+        
+        -- reset_workersをモック化 (呼ばれるはず)
+        local reset_called = false
+        rt.reset_workers = function(self)
+            reset_called = true
+        end
+        
+        -- 初期状態の確認
+        local init_mouse_x = rt.mouse_x
+        local init_mouse_y = rt.mouse_y
+        
+        -- ここでhandle_mouseを呼ぶ
+        rt:handle_mouse()
+        
+        return init_mouse_x, init_mouse_y, rt.mouse_x, rt.mouse_y, reset_called
+    )");
+    
+    ASSERT_TRUE(result.valid()) << ((sol::error)result).what();
+    std::tuple<sol::object, sol::object, double, double, bool> res = result;
+    
+    EXPECT_TRUE(std::get<0>(res).is<sol::nil_t>()) << "init_mouse_x should be nil";
+    EXPECT_TRUE(std::get<1>(res).is<sol::nil_t>()) << "init_mouse_y should be nil";
+    EXPECT_DOUBLE_EQ(std::get<2>(res), 123.0) << "mouse_x should be updated to state.x";
+    EXPECT_DOUBLE_EQ(std::get<3>(res), -356.0) << "mouse_y should be updated to height - state.y (100 - 456 = -356)";
+    EXPECT_TRUE(std::get<4>(res)) << "reset_workers should be called";
+}
+

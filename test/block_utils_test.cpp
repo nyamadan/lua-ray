@@ -284,6 +284,98 @@ TEST_F(BlockUtilsTest, ShuffleBlocksDoesNotModifyOriginal) {
 }
 
 // ========================================
+// sort_blocks_by_distance テスト
+// ========================================
+
+// テスト13: 中心点から近い順にソートされる
+TEST_F(BlockUtilsTest, SortBlocksByDistanceBasic) {
+    lua.script(R"(
+        local BlockUtils = require("lib.BlockUtils")
+        
+        -- テスト用のブロック定義 (10x10のブロック)
+        local blocks = {
+            {x = 0, y = 0, w = 10, h = 10},     -- 中心 (5, 5)   距離 (45, 45) -> 4050
+            {x = 40, y = 40, w = 10, h = 10},   -- 中心 (45, 45) 距離 (5, 5) -> 50
+            {x = 50, y = 50, w = 10, h = 10},   -- 中心 (55, 55) 距離 (5, 5) -> 50
+            {x = 100, y = 100, w = 10, h = 10}  -- 中心 (105, 105) 距離 (55, 55) -> 6050
+        }
+        
+        -- 目標中心点: (50, 50)
+        local sorted = BlockUtils.sort_blocks_by_distance(blocks, 50, 50)
+        
+        -- 近い順に並んでいるか確認
+        first_x = sorted[1].x
+        first_y = sorted[1].y
+        second_x = sorted[2].x
+        second_y = sorted[2].y
+        fourth_x = sorted[4].x
+        fourth_y = sorted[4].y
+        
+        count = #sorted
+    )");
+    
+    int count = lua["count"];
+    ASSERT_EQ(count, 4);
+    
+    int first_x = lua["first_x"];
+    int first_y = lua["first_y"];
+    // (40, 40) または (50, 50) が先頭か2番目に来るはず
+    // 中心点との距離はどちらも同じなので、安定ソートかどうかに依存するが
+    // 少なくとも (0,0) や (100,100) が先頭には来ない
+    ASSERT_TRUE((first_x == 40 && first_y == 40) || (first_x == 50 && first_y == 50));
+    
+    int fourth_x = lua["fourth_x"];
+    int fourth_y = lua["fourth_y"];
+    // 最も遠い (100, 100) が最後に来る
+    ASSERT_EQ(fourth_x, 100);
+    ASSERT_EQ(fourth_y, 100);
+}
+
+// テスト14: ソート後も全ブロックが保持される
+TEST_F(BlockUtilsTest, SortBlocksByDistancePreservesAllBlocks) {
+    lua.script(R"(
+        local BlockUtils = require("lib.BlockUtils")
+        local blocks = BlockUtils.generate_blocks(256, 256, 64, 4)
+        local original_count = #blocks
+        
+        local sorted = BlockUtils.sort_blocks_by_distance(blocks, 128, 128)
+        result_count = #sorted
+        original_count_result = original_count
+    )");
+    
+    int original_count = lua["original_count_result"];
+    int sorted_count = lua["result_count"];
+    ASSERT_EQ(sorted_count, original_count);
+}
+
+// テスト15: 元の配列は変更されない
+TEST_F(BlockUtilsTest, SortBlocksDoesNotModifyOriginal) {
+    lua.script(R"(
+        local BlockUtils = require("lib.BlockUtils")
+        local blocks = BlockUtils.generate_blocks(128, 128, 64, 2)
+        
+        -- 元の最初のブロックを記録
+        original_first_x = blocks[1].x
+        original_first_y = blocks[1].y
+        
+        -- ソート実行
+        local sorted = BlockUtils.sort_blocks_by_distance(blocks, 100, 100)
+        
+        -- 元の配列が変更されていないか確認
+        after_first_x = blocks[1].x
+        after_first_y = blocks[1].y
+    )");
+    
+    int original_x = lua["original_first_x"];
+    int original_y = lua["original_first_y"];
+    int after_x = lua["after_first_x"];
+    int after_y = lua["after_first_y"];
+    
+    ASSERT_EQ(original_x, after_x);
+    ASSERT_EQ(original_y, after_y);
+}
+
+// ========================================
 // 共有キュー関連 テスト（TDD Red Phase）
 // ========================================
 

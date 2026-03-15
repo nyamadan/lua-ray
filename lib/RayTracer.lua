@@ -296,8 +296,12 @@ function RayTracer:setup_blocks(queue_name)
         self.width, self.height, self.BLOCK_SIZE, 1
     )
     
-    -- ブロックをシャッフルしてランダム順序にする
-    blocks = BlockUtils.shuffle_blocks(blocks)
+    -- マウス位置が保存されている場合は近い順にソート、そうでない場合はシャッフル
+    if self.mouse_x and self.mouse_y then
+        blocks = BlockUtils.sort_blocks_by_distance(blocks, self.mouse_x, self.mouse_y)
+    else
+        blocks = BlockUtils.shuffle_blocks(blocks)
+    end
     
     -- 共有キューをセットアップ
     BlockUtils.setup_shared_queue(self.data, blocks, queue_name)
@@ -766,6 +770,10 @@ function RayTracer:handle_mouse()
     local delta_pitch = state.rel_y * sensitivity
     
     camera:rotate(delta_yaw, delta_pitch)
+    
+    -- マウス位置を保存して優先レンダリングに利用 (Y座標はスクリーン下方正から上方正へ変換)
+    self.mouse_x = state.x
+    self.mouse_y = self.height - state.y
     
     -- カメラが移動した場合、レイトレーシングをリセットして再描画
     self:reset_workers()
