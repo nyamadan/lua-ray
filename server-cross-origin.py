@@ -25,7 +25,7 @@ class Handler(SimpleHTTPRequestHandler):
         super().end_headers()
 
 
-def run_server(host="0.0.0.0", port=8143):
+def run_server(host="localhost", port=8143):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_dir)
 
