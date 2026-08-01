@@ -25,7 +25,7 @@ class Handler(SimpleHTTPRequestHandler):
         super().end_headers()
 
 
-def run_server(host="localhost", port=8000):
+def run_server(host="localhost", port=8143):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_dir)
 
@@ -46,5 +46,5 @@ def run_server(host="localhost", port=8000):
             sys.exit(0)
 
 if __name__ == "__main__":
-    port_arg = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
+    port_arg = int(sys.argv[1]) if len(sys.argv) > 1 else 8143
     run_server(port=port_arg)
