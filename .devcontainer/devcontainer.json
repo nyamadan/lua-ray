@@ -36,13 +36,16 @@
       ]
     }
   },
-    "containerEnv": {
+  "containerEnv": {
     "MISE_YES": "0",
     "MISE_PARANOID": "1",
     "MISE_NOT_FOUND_AUTO_INSTALL": "0",
     "MISE_MINIMUM_RELEASE_AGE": "7d",
     "MISE_TRUSTED_CONFIG_PATHS": "${containerWorkspaceFolder}"
-  }
+  },
+  "runArgs": [
+    "--network=host"
+  ]
   // Features to add to the dev container. More info: https://containers.dev/features.
   // "features": {},
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
