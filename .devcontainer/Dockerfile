@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/base:noble
+FROM mcr.microsoft.com/devcontainers/base:resolute
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
