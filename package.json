@@ -6,7 +6,6 @@
   "author": "Yoshiki YAMADA <nyamadandan@gmail.com>",
   "license": "MIT",
   "private": true,
-  "packageManager": "pnpm@10.28.1",
   "scripts": {
     "configure": "cmake --preset gcc-debug",
     "configure:win32": "cmake --preset win32-release",
