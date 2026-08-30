@@ -5,7 +5,7 @@ DIR="$(cd -- "$(dirname "$0")" && pwd)"
 ROOT_DIR="$DIR/.."
 
 # Define versions
-EMSCRIPTEN_VERSION=4.0.22
+EMSCRIPTEN_VERSION=6.0.5
 
 # emsdk install
 # Setup emsdk in the project root
@@ -37,4 +37,3 @@ EMSCRIPTEN_VERSION=4.0.22
 if [ -f "$DIR/install.local.sh" ]; then
     bash "$DIR/install.local.sh"
 fi
-
