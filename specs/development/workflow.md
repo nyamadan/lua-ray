@@ -4,8 +4,9 @@ title: 開発・検証ワークフロー
 description: lua-rayのビルド、テスト、仕様同期、レビュー前に確認する現行手順。
 tags: [development, build, test, cmake, pnpm]
 status: stable
-generated: { by: process:initial-okf-specification, at: 2026-08-30T00:00:00Z }
-verified: { by: process:initial-okf-verification, at: 2026-08-30T00:00:00Z }
+generated: { by: process:dependency-upgrade, at: 2026-08-30T12:49:58Z }
+verified:
+  { by: process:dependency-upgrade-verification, at: 2026-08-30T12:49:58Z }
 sources:
   - id: agents
     resource: ../../AGENTS.md
@@ -16,6 +17,9 @@ sources:
   - id: package
     resource: ../../package.json
     title: pnpm scripts
+  - id: cmake
+    resource: ../../CMakeLists.txt
+    title: CMake依存定義
 ---
 
 # Commands

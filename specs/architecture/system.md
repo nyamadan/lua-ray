@@ -4,8 +4,9 @@ title: lua-ray システム概要
 description: C++ホストとLuaスクリプトを組み合わせたEmbreeレイトレーシングアプリケーションの現行構成。
 tags: [architecture, cpp, lua, embree, sdl, wasm]
 status: stable
-generated: { by: process:initial-okf-specification, at: 2026-08-30T00:00:00Z }
-verified: { by: process:initial-okf-verification, at: 2026-08-30T00:00:00Z }
+generated: { by: process:dependency-upgrade, at: 2026-08-30T12:49:58Z }
+verified:
+  { by: process:dependency-upgrade-verification, at: 2026-08-30T12:49:58Z }
 sources:
   - id: readme
     resource: ../../README.md
@@ -20,7 +21,7 @@ sources:
 
 # Purpose
 
-`lua-ray` は、C++17をホスト、Lua 5.4をシーンとレンダリングロジック、Embreeをレイ交差、SDL3/ImGuiを表示と入力に使う実験的なレイトレーシングアプリケーションである。
+`lua-ray` は、C++17をホスト、Lua 5.4.9をシーンとレンダリングロジック、Embree 4.4.1をレイ交差、SDL3/ImGuiを表示と入力に使う実験的なレイトレーシングアプリケーションである。
 
 # Responsibilities
 

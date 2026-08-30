@@ -57,7 +57,7 @@ include(FetchContent)
 FetchContent_Declare(
     SDL3
     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-    GIT_TAG release-3.4.0
+    GIT_TAG release-3.4.14
     GIT_SHALLOW TRUE
     EXCLUDE_FROM_ALL
 )
@@ -73,7 +73,7 @@ FetchContent_MakeAvailable(SDL3)
 FetchContent_Declare(
     lua_src
     GIT_REPOSITORY https://github.com/lua/lua.git
-    GIT_TAG v5.4.8
+    GIT_TAG v5.4.9
     GIT_SHALLOW TRUE
     EXCLUDE_FROM_ALL
 )
@@ -125,7 +125,7 @@ endif()
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG v1.92.5
+    GIT_TAG v1.92.9b
     GIT_SHALLOW TRUE
     EXCLUDE_FROM_ALL
 )
@@ -175,7 +175,7 @@ set(EMBREE_ISPC_SUPPORT OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
     embree
     GIT_REPOSITORY https://github.com/embree/embree.git
-    GIT_TAG v4.4.0 # 適宜バージョンは調整してください
+    GIT_TAG v4.4.1
     GIT_SHALLOW TRUE
     EXCLUDE_FROM_ALL
 )
@@ -272,7 +272,7 @@ if(NOT EMSCRIPTEN)
 
     FetchContent_Declare(
         googletest
-        URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+        URL https://github.com/google/googletest/archive/refs/tags/v1.18.0.zip
     )
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(googletest)
