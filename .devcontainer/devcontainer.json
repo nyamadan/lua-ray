@@ -7,7 +7,7 @@
     "dockerfile": "Dockerfile"
   },
   "postCreateCommand": "bash -c ./.devcontainer/install.sh",
-  "appPort": 8143,
+  "appPort": ["127.0.0.1:8143:8143"],
   "mounts": [
     {
       "source": "${localWorkspaceFolderBasename}_nodemodules",
