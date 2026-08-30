@@ -25,15 +25,16 @@ class Handler(SimpleHTTPRequestHandler):
         super().end_headers()
 
 
-def run_server(host="localhost", port=8143):
+def run_server(host="0.0.0.0", port=8143):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_dir)
 
-    url = f"http://{host}:{port}"
+    browser_url = f"http://localhost:{port}"
     socketserver.TCPServer.allow_reuse_address = True
 
     with socketserver.TCPServer((host, port), Handler) as httpd:
-        print(f"Server running at {url}")
+        print(f"Server listening on {host}:{port}")
+        print(f"Open {browser_url} in your browser.")
         print(f"Serving directory: {script_dir}")
         print("Press Ctrl+C to stop.")
 

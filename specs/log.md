@@ -2,6 +2,7 @@
 
 ## 2026-08-30
 
+- **Development**: DevContainerのhost networkを廃止し、loopback限定のappPortを介して開発サーバーへアクセスできる構成に変更した。
 - **CI**: GitHub Actionsを最新安定版へ更新し、全 `uses:` を公式リリースタグに対応する完全長コミットSHAで固定した。
 - **Refactoring**: RayTracerの描画・ポストエフェクトに共通するworker、完了判定、コルーチン処理をRenderStageへ集約し、専用テストと既存テストで挙動を検証した。
 - **Toolchain**: emsdkとEmscriptenを6.0.5へ更新し、Debug/ReleaseのWebAssembly build、GCC build、CTestで検証した。
