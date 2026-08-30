@@ -1,5 +1,5 @@
 -- RayTracer Class Definition
-local BlockUtils = require("lib.BlockUtils")
+local RenderStage = require("lib.RenderStage")
 local ResolutionPresets = require("lib.ResolutionPresets")
 local ThreadPresets = require("lib.ThreadPresets")
 
@@ -291,16 +291,7 @@ end
 
 -- ブロック分割と共有キューの共通セットアップ
 function RayTracer:setup_blocks(queue_name)
-    -- ブロック単位で画面を分割
-    local blocks = BlockUtils.generate_blocks(
-        self.width, self.height, self.BLOCK_SIZE, 1
-    )
-    
-    -- ブロックをシャッフルしてランダム順序にする
-    blocks = BlockUtils.shuffle_blocks(blocks)
-    
-    -- 共有キューをセットアップ
-    BlockUtils.setup_shared_queue(self.data, blocks, queue_name)
+    RenderStage.setup_blocks(self, queue_name)
 end
 
 -- スレッドレンダリングを開始（ブロック単位分割、9スレッド制限）
@@ -309,13 +300,6 @@ function RayTracer:start_render_threads()
     
     -- Stop any existing coroutine
     self.render_coroutine = nil
-    
-    -- 既存のワーカーをクリア
-    self.workers = {}
-    
-    self:setup_blocks("render_queue")
-
-    -- ワーカーを作成して開始
     
     -- カメラ情報をシリアライズ（もし存在すれば）
     if self.current_scene_module and self.current_scene_module.get_camera then
@@ -339,42 +323,26 @@ function RayTracer:start_render_threads()
         self.data:set_string("camera_state", "")
     end
     
-    for i = 0, self.NUM_THREADS - 1 do
-        -- Boundsは使用しないが、一応画面全体を渡しておく
-        local worker = ThreadWorker.create(self.data, self.scene, 0, 0, self.width, self.height, i)
-        
-        -- ワーカー開始 (ブロック情報は共有キューから取得するため個別設定不要)
-        worker:start("workers/ray_worker.lua", self.current_scene_type)
-        table.insert(self.workers, worker)
-    end
+    self.workers = RenderStage.start_workers(
+        self, "render_queue", "workers/ray_worker.lua"
+    )
 end
 
 -- シングルスレッドレンダリング用コルーチン作成
 function RayTracer:create_render_coroutine()
-    local WorkerUtils = require("workers.worker_utils")
-    return coroutine.create(function()
-        print("Starting single-threaded render (Coroutine)...")
-        
-        self:setup_blocks("render_queue")
-        
-        local function process_callback(app_data, x, y)
+    return RenderStage.create_coroutine(
+        self,
+        "render_queue",
+        function(app_data, x, y)
             self.current_scene_module.shade(app_data, x, y)
+        end,
+        function()
+            print(string.format("Single-threaded render finished internally."))
+        end,
+        function()
+            print("Starting single-threaded render (Coroutine)...")
         end
-        
-        local function check_cancel()
-            coroutine.yield()
-            return false
-        end
-        
-        -- 1ブロック完了ごとにyield（既存の12msチェックも維持）
-        local function on_block_complete()
-            coroutine.yield()
-        end
-        
-        WorkerUtils.process_blocks(self.data, "render_queue", "render_queue_idx", process_callback, check_cancel, nil, on_block_complete)
-        
-        print(string.format("Single-threaded render finished internally."))
-    end)
+    )
 end
 
 
@@ -382,13 +350,7 @@ end
 function RayTracer:update()
     -- Multi-threaded update
     if #self.workers > 0 then
-        local all_done = true
-        
-        for _, worker in ipairs(self.workers) do
-            if not worker:is_done() then
-                all_done = false
-            end
-        end
+        local all_done = RenderStage.all_workers_done(self.workers)
         
         -- レンダリング中、バックバッファからテクスチャを更新
         self:update_texture_from_back()
@@ -442,13 +404,7 @@ function RayTracer:update()
     
     -- PostEffect Multi-threaded update
     elseif #self.posteffect_workers > 0 then
-        local all_done = true
-        
-        for _, worker in ipairs(self.posteffect_workers) do
-            if not worker:is_done() then
-                all_done = false
-            end
-        end
+        local all_done = RenderStage.all_workers_done(self.posteffect_workers)
         
         -- PostEffect中もバックバッファからテクスチャを更新
         self:update_texture_from_back()
@@ -520,51 +476,27 @@ end
 
 -- PostEffectスレッドを開始（ブロック単位分割、スレッド制限）
 function RayTracer:start_posteffect_threads()
-    local json = require("lib.json")
-    
-    self.posteffect_workers = {}
-    
-    self:setup_blocks("posteffect_queue")
-    
-    -- 各スレッドに対してワーカーを起動
-    for i = 0, self.NUM_THREADS - 1 do
-        -- Boundsは使用しないが画面全体を渡す
-        local worker = ThreadWorker.create(
-            self.data, self.scene, 0, 0, self.width, self.height, i
-        )
-        worker:start("workers/posteffect_worker.lua", self.current_scene_type)
-        table.insert(self.posteffect_workers, worker)
-    end
+    self.posteffect_workers = RenderStage.start_workers(
+        self, "posteffect_queue", "workers/posteffect_worker.lua"
+    )
 end
 
 -- PostEffect用コルーチン作成
 function RayTracer:create_posteffect_coroutine()
-    local WorkerUtils = require("workers.worker_utils")
-    return coroutine.create(function()
-        print("Starting PostEffect (Coroutine)...")
-        
-        self:setup_blocks("posteffect_queue")
-        
-        local function process_callback(app_data, x, y)
+    return RenderStage.create_coroutine(
+        self,
+        "posteffect_queue",
+        function(app_data, x, y)
             self.current_scene_module.post_effect(app_data, x, y)
+        end,
+        function()
+            self.data:swap()
+            self.data:clear_back_buffer()
+        end,
+        function()
+            print("Starting PostEffect (Coroutine)...")
         end
-        
-        local function check_cancel()
-            coroutine.yield()
-            return false
-        end
-        
-        -- 1ブロック完了ごとにyield（既存の12msチェックも維持）
-        local function on_block_complete()
-            coroutine.yield()
-        end
-        
-        WorkerUtils.process_blocks(self.data, "posteffect_queue", "posteffect_queue_idx", process_callback, check_cancel, nil, on_block_complete)
-        
-        -- PostEffect完了後にswap
-        self.data:swap()
-        self.data:clear_back_buffer()
-    end)
+    )
 end
 
 function RayTracer:on_ui()

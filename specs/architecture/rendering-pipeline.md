@@ -4,12 +4,19 @@ title: レンダリングパイプライン
 description: ブロックキュー、シングル/マルチスレッド、ダブルバッファ、ポストエフェクトの現行処理。
 tags: [rendering, threading, blocks, buffers, post-effect]
 status: stable
-generated: { by: process:initial-okf-specification, at: 2026-08-30T00:00:00Z }
-verified: { by: process:initial-okf-verification, at: 2026-08-30T00:00:00Z }
+generated: { by: process:render-stage-refactoring, at: 2026-08-30T22:54:00Z }
+verified:
+  - {
+      by: process:render-stage-refactoring-verification,
+      at: 2026-08-30T22:54:00Z,
+    }
 sources:
   - id: raytracer
     resource: ../../lib/RayTracer.lua
     title: パイプライン制御
+  - id: render-stage
+    resource: ../../lib/RenderStage.lua
+    title: 共通レンダーステージ制御
   - id: blocks
     resource: ../../lib/BlockUtils.lua
     title: ブロック・キュー実装
@@ -22,11 +29,16 @@ sources:
   - id: worker-tests
     resource: ../../test/worker_utils_test.cpp
     title: ワーカーユーティリティテスト
+  - id: render-stage-tests
+    resource: ../../test/render_stage_test.cpp
+    title: レンダーステージテスト
 ---
 
 # Render stages
 
 `RayTracer:render` は両バッファをクリアし、`render_queue` を作り、シングルスレッドではコルーチン、マルチスレッドでは `ThreadWorker` 群を開始する。各ブロックは共有キューの `pop_next_index` で一度だけ取得され、コールバックがブロック内のピクセルを処理する。
+
+描画とポストエフェクトに共通するキュー準備、worker群の生成・完了判定、コルーチンのブロック処理は `RenderStage` が担い、`RayTracer` は各ステージ固有のcallbackと完了処理を渡す。
 
 描画中はback bufferをテクスチャへ表示し、全workerまたはコルーチンが完了したら、ポストエフェクトがあればそのステージへ移る。なければ `swap`、back bufferクリア、front bufferのテクスチャ更新を行う。
 
