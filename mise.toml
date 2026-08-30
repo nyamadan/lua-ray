@@ -2,3 +2,6 @@
 node = "22"
 npm = "12"
 pnpm = "11"
+
+"npm:@openai/codex" = "latest"
+

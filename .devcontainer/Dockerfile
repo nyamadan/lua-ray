@@ -9,6 +9,7 @@ RUN apt-get update && \
         make \
         ninja-build \
         python3 \
+        python3-yaml \
         gdb \
         pkg-config \
         cmake \

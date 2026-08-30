@@ -6,7 +6,7 @@
   "author": "Yoshiki YAMADA <nyamadandan@gmail.com>",
   "license": "MIT",
   "private": true,
-  "packageManager": "pnpm@10.28.1",
+  "packageManager": "pnpm@11.22.0",
   "scripts": {
     "configure": "cmake --preset gcc-debug",
     "configure:win32": "cmake --preset win32-release",
@@ -18,6 +18,6 @@
     "test": "ctest --preset gcc-debug --output-on-failure"
   },
   "devDependencies": {
-    "prettier": "3.8.1"
+    "prettier": "3.9.6"
   }
 }
