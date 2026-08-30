@@ -1,0 +1,4 @@
+interface:
+  display_name: "OKF仕様書駆動開発"
+  short_description: "OKF仕様から受入条件・実装・検証まで導く"
+  default_prompt: "OKF仕様書駆動開発として、既存仕様・実装・テストを調査し、変更仕様、受入条件、実装、検証、仕様同期まで行ってください。"

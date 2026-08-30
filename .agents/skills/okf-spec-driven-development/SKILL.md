@@ -1,8 +1,31 @@
 ---
 name: okf-spec-driven-development
-description: "[TODO: Briefly describe what this skill does and when it applies.]"
+description: "OKF v0.2の仕様束を根拠に、変更仕様・受入条件・実装・テスト・仕様同期を一貫して進めるときに使用します。"
 ---
 
-# Okf Spec Driven Development
+# OKF仕様書駆動開発
 
-[TODO: Add the task-specific guidance Codex needs. Reference supporting files only when they are relevant.]
+このスキルは、リポジトリの現行仕様を `specs/` のOKF v0.2束から読み取り、変更を仕様から実装し、実装後に仕様へ反映するために使う。製品コードを変更しない調査・仕様化だけにも適用する。
+
+## 必ず読む資料
+
+- OKFのfrontmatter、予約ファイル、リンク、出典、信頼、ライフサイクルを扱うときは [OKF執筆規約](references/okf-authoring.md) を読む。
+- 機能追加、修正、リファクタリング、仕様同期を行うときは [仕様書駆動ワークフロー](references/spec-driven-workflow.md) を読む。
+- lua-ray固有の概念、根拠ファイル、検証コマンドを扱うときは [ドメインガイド](references/lua-ray-domain.md) を読む。
+
+## 実行手順
+
+1. `specs/index.md` と影響範囲の概念・索引・ログを読み、実装とテストを `rg` で照合する。過去の補助ツール資料が存在しても、新しい仕様やスキルから依存しない。
+2. 既存の変更仕様があれば更新し、なければ `specs/changes/<change-id>.md` を `status: draft` で作る。要求、非目標、影響概念、観測可能な受入条件、テスト対応を埋める。
+3. 受入条件を満たす最小のテストを先に追加または選択し、失敗を確認してから実装する。仕様だけの作業では、構造検証を受入条件にする。
+4. 実装、単体テスト、ビルドを実行する。失敗時は原因を直し、仕様にない挙動を黙って追加しない。
+5. 実装とテストが受入条件を満たしたら、影響した概念の `sources`、`generated`、`status`、リンク、`index.md`、`log.md` を同じ変更で更新する。未検証の記述は `draft` のまま残す。
+6. OKF構造、リンク、Markdown/YAML、スキル自体を検証し、最終報告では変更ファイル、根拠、テスト結果、未解決事項を簡潔に示す。
+
+## 境界と不変条件
+
+- OKFの必須条件は、概念文書の先頭にparseableなYAML frontmatterがあり、空でない `type` があること。未知の型・追加キー・壊れたリンク・任意項目の欠落は理由にして文書を拒否しない。
+- `index.md` と `log.md` は予約ファイルであり、概念文書のfrontmatterを置かない（ルート `index.md` の `okf_version` は例外）。
+- 出典は本文の推測でなく `sources[].resource` に記録し、コード・テスト・README・移行元資料のいずれかへリンクする。
+- スキルは仕様を先に確定するが、ユーザーが求めていない製品コード、依存関係、CI、補助ツール設定を変更しない。
+- `Attested Computation` は実行値を検証する契約が実際に追加された場合だけ使う。通常の変更仕様は `Change Specification` とする。
