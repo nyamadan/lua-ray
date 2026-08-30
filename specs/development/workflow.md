@@ -4,8 +4,9 @@ title: 開発・検証ワークフロー
 description: lua-rayのビルド、テスト、仕様同期、レビュー前に確認する現行手順。
 tags: [development, build, test, cmake, pnpm]
 status: stable
-generated: { by: process:emsdk-upgrade, at: 2026-08-30T13:05:57Z }
-verified: { by: process:emsdk-upgrade-verification, at: 2026-08-30T13:05:57Z }
+generated: { by: process:github-actions-upgrade, at: 2026-08-30T23:03:51Z }
+verified:
+  { by: process:github-actions-upgrade-verification, at: 2026-08-30T23:03:51Z }
 sources:
   - id: agents
     resource: ../../AGENTS.md
@@ -41,6 +42,8 @@ pnpm start
 ```
 
 Emscriptenはemsdk 6.0.5へ固定し、CIとdevcontainerで同じバージョンをインストール・有効化する。
+
+CIで利用するGitHub Actionsは、採用バージョンを行末コメントに記録し、公式リリースタグに対応する完全長コミットSHAで固定する。
 
 ネイティブの標準検証はGCC Debug buildとCTest。WASM固有の変更はEmscripten buildも行う。GUI起動は `./build/gcc-debug/lua-ray` で確認できるが、ヘッドレス環境では実行不能を失敗と断定せず、build/test結果と理由を報告する。
 

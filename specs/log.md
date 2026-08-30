@@ -2,6 +2,7 @@
 
 ## 2026-08-30
 
+- **CI**: GitHub Actionsを最新安定版へ更新し、全 `uses:` を公式リリースタグに対応する完全長コミットSHAで固定した。
 - **Refactoring**: RayTracerの描画・ポストエフェクトに共通するworker、完了判定、コルーチン処理をRenderStageへ集約し、専用テストと既存テストで挙動を検証した。
 - **Toolchain**: emsdkとEmscriptenを6.0.5へ更新し、Debug/ReleaseのWebAssembly build、GCC build、CTestで検証した。
 - **Dependencies**: SDL 3.4.14、Lua 5.4.9、ImGui 1.92.9b、Embree 4.4.1、GoogleTest 1.18.0へ更新し、GCC、CTest、Emscripten、Win32で検証した。
