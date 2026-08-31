@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <tuple>
 #include <vector>
 
 // 前方宣言 (cgltf の型はcppで使用)
@@ -11,6 +12,8 @@ struct TextureImage {
     int height = 0;
     int channels = 0;
     std::vector<unsigned char> pixels;
+
+    std::tuple<int, int, int> sample(float u, float v) const;
 };
 
 /// glTFファイルのRAIIラッパー
@@ -45,6 +48,9 @@ public:
     /// 指定メッシュ・プリミティブのUV座標 (TEXCOORD_0) を取得 (u,vのフラット配列)
     std::vector<float> getTexCoords(size_t meshIndex, size_t primitiveIndex) const;
 
+    /// 指定メッシュ・プリミティブの頂点法線を取得 (x,y,zのフラット配列)
+    std::vector<float> getNormals(size_t meshIndex, size_t primitiveIndex) const;
+
     /// 指定インデックスのテクスチャ画像を取得（デコード済み）
     TextureImage getTextureImage(size_t textureIndex) const;
 
@@ -54,4 +60,3 @@ public:
 private:
     cgltf_data* data_;
 };
-

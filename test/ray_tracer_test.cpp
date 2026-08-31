@@ -26,6 +26,61 @@ TEST_F(RayTracerTest, RayTracerClassExists) {
     ASSERT_TRUE(result.get<sol::object>().is<sol::table>());
 }
 
+TEST_F(RayTracerTest, ProgressivePassContinuesAndStopsAtLimit) {
+    auto result = lua.safe_script(R"(
+        local RayTracer = require('lib.RayTracer')
+        local rt = RayTracer.new(2, 2)
+        local starts, renders, swaps = 0, 0, 0
+        rt.current_scene_module = {
+            is_progressive=function() return true end,
+            get_max_samples=function() return 2 end,
+            start=function() starts=starts+1 end,
+        }
+        rt.data = {
+            swap=function() swaps=swaps+1 end,
+            clear_back_buffer=function() end,
+            copy_front_to_back=function() end,
+            set_string=function(self,key,value) self[key]=value end,
+        }
+        rt.update_texture=function() end
+        rt.render_without_clear=function() renders=renders+1 end
+        rt.progressive_pass=1
+        rt:complete_render_pass(false)
+        local after_first=rt.progressive_pass
+        rt:complete_render_pass(false)
+        return after_first,rt.progressive_pass,starts,renders,swaps,rt.data.progressive_pass
+    )", sol::script_pass_on_error);
+    ASSERT_TRUE(result.valid()) << sol::error(result).what();
+    std::tuple<int,int,int,int,int,std::string> values=result;
+    EXPECT_EQ(std::get<0>(values),2);
+    EXPECT_EQ(std::get<1>(values),2);
+    EXPECT_EQ(std::get<2>(values),1);
+    EXPECT_EQ(std::get<3>(values),1);
+    EXPECT_EQ(std::get<4>(values),2);
+    EXPECT_EQ(std::get<5>(values),"2");
+}
+
+TEST_F(RayTracerTest, CancelResetsProgressiveAccumulation) {
+    auto result = lua.safe_script(R"(
+        local RayTracer = require('lib.RayTracer')
+        local rt = RayTracer.new(2,2)
+        local resets=0
+        rt.current_scene_module={is_progressive=function() return true end}
+        rt.data={
+            reset_accumulation=function() resets=resets+1 end,
+            set_string=function(self,key,value) self[key]=value end,
+        }
+        rt.progressive_pass=7
+        rt:cancel()
+        return resets,rt.progressive_pass,rt.data.progressive_pass
+    )", sol::script_pass_on_error);
+    ASSERT_TRUE(result.valid()) << sol::error(result).what();
+    std::tuple<int,int,std::string> values=result;
+    EXPECT_EQ(std::get<0>(values),1);
+    EXPECT_EQ(std::get<1>(values),0);
+    EXPECT_EQ(std::get<2>(values),"0");
+}
+
 TEST_F(RayTracerTest, NewInstance) {
     auto result = lua.safe_script(R"(
         local RayTracer = require('lib.RayTracer')

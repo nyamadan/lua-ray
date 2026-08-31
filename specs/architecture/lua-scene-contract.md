@@ -39,6 +39,8 @@ sources:
 | `get_camera()`                | UI操作・worker初期化時                          | カメラまたはnilを返し、存在時は状態をJSON化できる構造を持つ           |
 | `cleanup(scene)`              | シーン切替前                                    | シーン固有のメインState資源を解放する                                 |
 | `stop(scene)`                 | レンダー/ポストエフェクト終了またはworker終了時 | State固有の後処理を行う                                               |
+| `is_progressive()`            | シーン開始・pass完了時                          | progressive sceneならtrueを返す                                       |
+| `get_max_samples()`           | progressive pass完了時                          | 停止するsample数を正整数で返す                                        |
 
 # Worker invariants
 

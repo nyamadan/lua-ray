@@ -6,6 +6,17 @@
 #include "stb_image.h"
 
 #include <iostream>
+#include <cmath>
+
+std::tuple<int, int, int> TextureImage::sample(float u, float v) const {
+    if (width <= 0 || height <= 0 || channels < 3 || pixels.empty()) return {0, 0, 0};
+    u -= std::floor(u);
+    v -= std::floor(v);
+    int x = std::min(static_cast<int>(u * width), width - 1);
+    int y = std::min(static_cast<int>(v * height), height - 1);
+    size_t offset = static_cast<size_t>((y * width + x) * channels);
+    return {pixels[offset], pixels[offset + 1], pixels[offset + 2]};
+}
 
 // ----------------------------------------------------------------
 // GltfData
@@ -117,6 +128,23 @@ std::vector<float> GltfData::getTexCoords(size_t meshIndex, size_t primitiveInde
             std::vector<float> texcoords(floatCount);
             cgltf_accessor_unpack_floats(accessor, texcoords.data(), floatCount);
             return texcoords;
+        }
+    }
+    return {};
+}
+
+std::vector<float> GltfData::getNormals(size_t meshIndex, size_t primitiveIndex) const {
+    if (!data_ || meshIndex >= data_->meshes_count) return {};
+    const cgltf_mesh& mesh = data_->meshes[meshIndex];
+    if (primitiveIndex >= mesh.primitives_count) return {};
+    const cgltf_primitive& prim = mesh.primitives[primitiveIndex];
+    for (size_t i = 0; i < prim.attributes_count; ++i) {
+        if (prim.attributes[i].type == cgltf_attribute_type_normal) {
+            const cgltf_accessor* accessor = prim.attributes[i].data;
+            size_t floatCount = cgltf_accessor_unpack_floats(accessor, nullptr, 0);
+            std::vector<float> normals(floatCount);
+            cgltf_accessor_unpack_floats(accessor, normals.data(), floatCount);
+            return normals;
         }
     }
     return {};

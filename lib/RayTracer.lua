@@ -25,6 +25,7 @@ function RayTracer.new(width, height)
     self.NUM_THREADS = 8 -- スレッド数
     self.BLOCK_SIZE = 64 -- ブロックサイズ
     self.render_start_time = 0 -- Rendering start time
+    self.progressive_pass = 0
     self.current_preset_index = ResolutionPresets.get_default_index() -- 解像度プリセットインデックス
     self.thread_preset_index = ThreadPresets.get_default_thread_index() -- スレッド数プリセットインデックス
     self.block_preset_index = ThreadPresets.get_default_block_index() -- ブロックサイズプリセットインデックス
@@ -206,6 +207,13 @@ function RayTracer:reset_workers(clear_texture)
     end
     self.render_coroutine = nil
     self.posteffect_coroutine = nil
+
+    if self:is_progressive_scene() then
+        self.data:reset_accumulation()
+        self.progressive_pass = 1
+        self.data:set_string("progressive_pass", "1")
+        clear_texture = true
+    end
     
     -- start を呼び直す（カメラやローカル状態の再初期化）
     if self.current_scene_module and self.current_scene_module.start then
@@ -276,6 +284,11 @@ function RayTracer:cancel()
     end
     self.render_coroutine = nil
     self.posteffect_coroutine = nil
+    if self:is_progressive_scene() and self.data then
+        self.data:reset_accumulation()
+        self.progressive_pass = 0
+        self.data:set_string("progressive_pass", "0")
+    end
     
     -- 状態をアイドルに戻すための追加処理があれば記述
     -- 例: プログレスバーのリセットなど
@@ -345,6 +358,35 @@ function RayTracer:create_render_coroutine()
     )
 end
 
+function RayTracer:is_progressive_scene()
+    return self.current_scene_module ~= nil and
+           self.current_scene_module.is_progressive ~= nil and
+           self.current_scene_module.is_progressive()
+end
+
+function RayTracer:complete_render_pass(call_stop)
+    self.data:swap()
+    self.data:clear_back_buffer()
+    self:update_texture()
+
+    if self:is_progressive_scene() then
+        local max_samples = self.current_scene_module.get_max_samples()
+        if self.progressive_pass < max_samples then
+            self.progressive_pass = self.progressive_pass + 1
+            self.data:set_string("progressive_pass", tostring(self.progressive_pass))
+            self.data:copy_front_to_back()
+            if self.current_scene_module.start then
+                self.current_scene_module.start(self.scene, self.data)
+            end
+            self:render_without_clear()
+            return
+        end
+    end
+    if call_stop and self.current_scene_module and self.current_scene_module.stop then
+        self.current_scene_module.stop(self.scene)
+    end
+end
+
 
 -- 毎フレーム呼ばれる更新処理
 function RayTracer:update()
@@ -364,10 +406,7 @@ function RayTracer:update()
             if self.current_scene_module.post_effect then
                 self:start_posteffect()
             else
-                -- PostEffect無しの場合はswapしてフロントに反映
-                self.data:swap()
-                self.data:clear_back_buffer()
-                self:update_texture()
+                self:complete_render_pass(false)
             end
         end
     
@@ -390,15 +429,7 @@ function RayTracer:update()
             if self.current_scene_module.post_effect then
                 self:start_posteffect()
             else
-                -- PostEffect無しの場合はswapしてフロントに反映
-                self.data:swap()
-                self.data:clear_back_buffer()
-                self:update_texture()
-                
-                -- シーン終了
-                if self.current_scene_module and self.current_scene_module.stop then
-                    self.current_scene_module.stop(self.scene)
-                end
+                self:complete_render_pass(true)
             end
         end
     
@@ -449,6 +480,16 @@ function RayTracer:render()
     
     -- Clear previous render data
     self.data:clear()
+    self.data:reset_accumulation()
+    if self:is_progressive_scene() then
+        self.progressive_pass = 1
+        self.data:set_string("progressive_pass", "1")
+        if self.current_scene_module.start then
+            self.current_scene_module.start(self.scene, self.data)
+        end
+    else
+        self.progressive_pass = 0
+    end
     self:update_texture()
 
     if self.use_multithreading then
@@ -601,6 +642,8 @@ function RayTracer:on_ui()
             { id = "material_transfer", name = "MatTransfer" },
             { id = "gltf_box", name = "GLTF Box" },
             { id = "gltf_box_textured", name = "GLTF BoxTex" },
+            { id = "damaged_helmet", name = "Damaged Helmet" },
+            { id = "damaged_helmet_pathtraced", name = "Damaged Helmet PT" },
             { id = "test_lifecycle", name = "Test Lifecycle" },
             { id = "raytracing_weekend", name = "RTWeekend" },
             { id = "cornell_box", name = "CornellBox" },
@@ -625,6 +668,11 @@ function RayTracer:on_ui()
                 end
             end
             ImGui.EndCombo()
+        end
+
+        if self:is_progressive_scene() then
+            ImGui.Text(string.format("Samples: %d / %d", self.progressive_pass,
+                self.current_scene_module.get_max_samples()))
         end
 
         ImGui.Separator()

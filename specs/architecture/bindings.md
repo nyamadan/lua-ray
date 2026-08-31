@@ -4,8 +4,8 @@ title: C++からLuaへのバインディング
 description: AppData、Embree、glTF、ThreadWorker、SDL/入力/テクスチャ操作のLua公開面。
 tags: [lua, api, cpp, appdata]
 status: stable
-generated: { by: process:initial-okf-specification, at: 2026-08-30T00:00:00Z }
-verified: { by: process:initial-okf-verification, at: 2026-08-30T00:00:00Z }
+generated: { by: process:codex-implementation, at: 2026-08-30T00:00:00Z }
+verified: { by: process:codex-verification, at: 2026-08-30T00:00:00Z }
 sources:
   - id: binding-header
     resource: ../../src/lua_binding.h
@@ -19,14 +19,21 @@ sources:
   - id: binding-tests
     resource: ../../test/lua_binding_test.cpp
     title: バインディングテスト
+  - id: texture-tests
+    resource: ../../test/texture_test.cpp
+    title: 共有テクスチャテスト
+  - id: accumulation-tests
+    resource: ../../test/app_data_test.cpp
+    title: Progressive累積テスト
 ---
 
 # Common types
 
 - `AppData.new(width, height)` はfront/back RGBAバッファを作る。`set_pixel` は範囲外を無視し、`get_pixel` はfront bufferを読む。`swap`、`copy_front_to_back`、`copy_back_to_front`、`clear`、`clear_back_buffer`、`width`、`height` を提供する。
-- `AppData` は排他制御付きの `set_string`、`get_string`、`has_string`、`pop_next_index` と、glTF/texture cacheの `load_*`、`get_*` を提供する。
+- `reset_accumulation` はlinear RGB累積値とpixelごとのsample countを消去する。`accumulate_sample` は担当pixelへ1 sampleを加算し、平均RGBとcountを返す。`get_sample_count` は範囲外で0を返す。
+- `AppData` は排他制御付きの `set_string`、`get_string`、`has_string`、`pop_next_index` と、glTF/texture cacheの `load_*`、`get_*` を提供する。`get_cached_texture` はworker間で共有するreadonlyな `TextureImage` を返し、Lua pixel tableを複製せず `sample(u, v)` できる。
 - `EmbreeDevice.new():create_scene()` は `EmbreeScene` を作る。sceneは `add_sphere`、`add_triangle`、`add_mesh`、`commit`、`intersect`、`release` を提供する。`intersect` はhit、距離、法線、geometry/primitive ID、barycentric値を返す。
-- `GltfData.new()` は `load`、`is_loaded`、mesh/vertex/index/UV/texture取得、`release` を提供する。失敗または存在しないcache項目はnil/空値として扱う。
+- `GltfData.new()` は `load`、`is_loaded`、mesh/vertex/index/UV/normal/texture取得、`release` を提供する。失敗または存在しないcache項目はnil/空値として扱う。
 
 # Main app namespace
 

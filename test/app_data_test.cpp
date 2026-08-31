@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "app_data.h"
+#include <thread>
 
 class AppDataTest : public ::testing::Test {
 protected:
@@ -391,4 +392,47 @@ TEST_F(AppDataTest, LoadTextureImageFailsWithoutGltf) {
 
     // GltfData がロードされていない場合は失敗
     EXPECT_FALSE(data.load_texture_image("tex", "missing_gltf", 0));
+}
+
+TEST_F(AppDataTest, AccumulatesAndResetsLinearSamples) {
+    AppData data(2, 1);
+    auto [r1, g1, b1, n1] = data.accumulate_sample(0, 0, 1.0f, 2.0f, 3.0f);
+    EXPECT_FLOAT_EQ(r1, 1.0f);
+    EXPECT_FLOAT_EQ(g1, 2.0f);
+    EXPECT_FLOAT_EQ(b1, 3.0f);
+    EXPECT_EQ(n1, 1u);
+
+    auto [r2, g2, b2, n2] = data.accumulate_sample(0, 0, 3.0f, 4.0f, 5.0f);
+    EXPECT_FLOAT_EQ(r2, 2.0f);
+    EXPECT_FLOAT_EQ(g2, 3.0f);
+    EXPECT_FLOAT_EQ(b2, 4.0f);
+    EXPECT_EQ(n2, 2u);
+    EXPECT_EQ(data.get_sample_count(0, 0), 2u);
+
+    data.reset_accumulation();
+    EXPECT_EQ(data.get_sample_count(0, 0), 0u);
+}
+
+TEST_F(AppDataTest, AccumulationIgnoresOutOfRangePixels) {
+    AppData data(1, 1);
+    auto [r, g, b, count] = data.accumulate_sample(-1, 0, 1.0f, 1.0f, 1.0f);
+    EXPECT_FLOAT_EQ(r, 0.0f);
+    EXPECT_FLOAT_EQ(g, 0.0f);
+    EXPECT_FLOAT_EQ(b, 0.0f);
+    EXPECT_EQ(count, 0u);
+    EXPECT_EQ(data.get_sample_count(2, 2), 0u);
+}
+
+TEST_F(AppDataTest, AccumulatesDifferentPixelsConcurrently) {
+    AppData data(8, 1);
+    std::vector<std::thread> threads;
+    for (int x = 0; x < 8; ++x) {
+        threads.emplace_back([&data, x]() {
+            for (int sample = 0; sample < 100; ++sample) {
+                data.accumulate_sample(x, 0, static_cast<float>(x), 1.0f, 2.0f);
+            }
+        });
+    }
+    for (auto& thread : threads) thread.join();
+    for (int x = 0; x < 8; ++x) EXPECT_EQ(data.get_sample_count(x, 0), 100u);
 }

@@ -16,6 +16,8 @@ public:
         m_back_buffer.resize(width * height);
         std::fill(m_front_buffer.begin(), m_front_buffer.end(), 0xFF000000);
         std::fill(m_back_buffer.begin(), m_back_buffer.end(), 0xFF000000);
+        m_accumulation.resize(width * height * 3, 0.0f);
+        m_sample_counts.resize(width * height, 0);
     }
 
     // バックバッファに書き込み
@@ -74,6 +76,33 @@ public:
     // バックバッファのみをクリア
     void clear_back_buffer() {
         std::fill(m_back_buffer.begin(), m_back_buffer.end(), 0xFF000000);
+    }
+
+    std::tuple<float, float, float, uint32_t> accumulate_sample(
+        int x, int y, float r, float g, float b) {
+        if (x < 0 || x >= m_width || y < 0 || y >= m_height) {
+            return {0.0f, 0.0f, 0.0f, 0};
+        }
+        size_t pixel = static_cast<size_t>(y * m_width + x);
+        size_t color = pixel * 3;
+        m_accumulation[color] += r;
+        m_accumulation[color + 1] += g;
+        m_accumulation[color + 2] += b;
+        uint32_t count = ++m_sample_counts[pixel];
+        float inverse = 1.0f / static_cast<float>(count);
+        return {m_accumulation[color] * inverse,
+                m_accumulation[color + 1] * inverse,
+                m_accumulation[color + 2] * inverse, count};
+    }
+
+    uint32_t get_sample_count(int x, int y) const {
+        if (x < 0 || x >= m_width || y < 0 || y >= m_height) return 0;
+        return m_sample_counts[static_cast<size_t>(y * m_width + x)];
+    }
+
+    void reset_accumulation() {
+        std::fill(m_accumulation.begin(), m_accumulation.end(), 0.0f);
+        std::fill(m_sample_counts.begin(), m_sample_counts.end(), 0);
     }
 
     // 文字列ストレージ（排他制御付き）
@@ -182,6 +211,8 @@ private:
     int m_height;
     std::vector<uint32_t> m_front_buffer;
     std::vector<uint32_t> m_back_buffer;
+    std::vector<float> m_accumulation;
+    std::vector<uint32_t> m_sample_counts;
     
     // 文字列ストレージ（スレッド間データ共有用）
     std::unordered_map<std::string, std::string> m_string_storage;
@@ -192,5 +223,4 @@ private:
     std::unordered_map<std::string, std::shared_ptr<TextureImage>> m_texture_cache;
     mutable std::mutex m_resource_mutex;
 };
-
 

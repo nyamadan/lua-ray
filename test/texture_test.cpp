@@ -2,6 +2,7 @@
 #include "lua_binding.h"
 #include "embree_wrapper.h"
 #include "gltf_loader.h"
+#include "app_data.h"
 
 // =============================================================
 // テストリスト (TDD):
@@ -178,4 +179,20 @@ TEST_F(TextureTest, BoxTexturedGlbTextureSampling) {
     )", sol::script_pass_on_error);
     ASSERT_TRUE(result.valid()) << "Lua error: " << sol::error(result).what();
     EXPECT_TRUE(result.get<bool>());
+}
+
+TEST_F(TextureTest, CachedTextureHandleSamplesWithoutPixelCopy) {
+    AppData data(1, 1);
+    ASSERT_TRUE(data.load_gltf("helmet", "assets/DamagedHelmet.glb"));
+    ASSERT_TRUE(data.load_texture_image("helmet_base", "helmet", 0));
+    lua["data"] = &data;
+    auto result = lua.safe_script(R"(
+        local texture = data:get_cached_texture('helmet_base')
+        assert(texture ~= nil)
+        assert(texture.width > 0 and texture.height > 0 and texture.channels >= 3)
+        local r, g, b = texture:sample(0.5, 0.5)
+        assert(r >= 0 and r <= 255 and g >= 0 and g <= 255 and b >= 0 and b <= 255)
+        return true
+    )", sol::script_pass_on_error);
+    ASSERT_TRUE(result.valid()) << sol::error(result).what();
 }

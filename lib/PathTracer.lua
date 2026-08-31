@@ -5,6 +5,7 @@ local Vec3 = require('lib.Vec3')
 local Ray = require('lib.Ray')
 
 local PathTracer = {}
+local BSDF = require('lib.BSDF')
 
 -- 定数
 PathTracer.kBackgroundColor = Vec3.new(0, 0, 0)  -- 背景色（黒）
@@ -146,6 +147,103 @@ function PathTracer.radiance(ray, scene, materials, depth, max_depth)
         weight.y * incoming_radiance.y,
         weight.z * incoming_radiance.z
     )
+end
+
+local function table_vec(x, y, z) return {x, y, z} end
+local function mul(a, b) return {a[1]*b[1], a[2]*b[2], a[3]*b[3]} end
+local function scale(a, value) return {a[1]*value, a[2]*value, a[3]*value} end
+local function add_to(target, value)
+    target[1], target[2], target[3] = target[1]+value[1], target[2]+value[2], target[3]+value[3]
+end
+local function dot_table(a, b) return a[1]*b[1]+a[2]*b[2]+a[3]*b[3] end
+local function normalize_table(v)
+    local length = math.sqrt(math.max(dot_table(v, v), 1e-12))
+    return {v[1]/length, v[2]/length, v[3]/length}
+end
+local function nonzero(v) return v and (v[1] > 0 or v[2] > 0 or v[3] > 0) end
+
+-- Surface-only path tracing with next-event estimation and power-heuristic MIS.
+-- callbacks.surface(hit, incoming_direction) returns {material, normal, emission}.
+-- callbacks.sample_light(point, rng) returns {direction, distance, radiance, pdf}.
+-- callbacks.light_pdf(previous_point, light_hit) returns a solid-angle PDF.
+function PathTracer.trace_mis(ray, scene, callbacks, rng, options)
+    options = options or {}
+    local max_depth = options.max_depth or 8
+    local rr_depth = options.rr_depth or 4
+    local radiance, throughput = {0,0,0}, {1,1,1}
+    local previous_pdf, previous_delta, previous_point = 0, true, nil
+    local current_origin = {ray.origin.x, ray.origin.y, ray.origin.z}
+    local current_direction = normalize_table({ray.direction.x, ray.direction.y, ray.direction.z})
+
+    for depth=0,max_depth-1 do
+        local hit_ok, distance, nx, ny, nz, geom_id, prim_id, bary_u, bary_v = scene:intersect(
+            current_origin[1], current_origin[2], current_origin[3],
+            current_direction[1], current_direction[2], current_direction[3])
+        if not hit_ok then
+            local background = callbacks.background and callbacks.background(current_direction) or {0,0,0}
+            add_to(radiance, mul(throughput, background))
+            break
+        end
+
+        local point = {current_origin[1]+current_direction[1]*distance,
+                       current_origin[2]+current_direction[2]*distance,
+                       current_origin[3]+current_direction[3]*distance}
+        local geometric_normal = normalize_table({nx,ny,nz})
+        if dot_table(geometric_normal, current_direction) > 0 then geometric_normal = scale(geometric_normal, -1) end
+        local hit = {point=point, geometric_normal=geometric_normal, geom_id=geom_id,
+                     prim_id=prim_id, bary_u=bary_u, bary_v=bary_v}
+        local surface = callbacks.surface(hit, current_direction)
+        local normal = normalize_table(surface.normal or geometric_normal)
+        if dot_table(normal, current_direction) > 0 then normal = scale(normal, -1) end
+
+        if nonzero(surface.emission) then
+            local weight = 1
+            if depth > 0 and not previous_delta and callbacks.light_pdf then
+                weight = BSDF.power_heuristic(previous_pdf, callbacks.light_pdf(previous_point, hit) or 0)
+            end
+            add_to(radiance, scale(mul(throughput, surface.emission), weight))
+        end
+        if not surface.material then break end
+
+        local wo = scale(current_direction, -1)
+        if callbacks.sample_light then
+            local light = callbacks.sample_light(point, rng)
+            if light and light.pdf and light.pdf > 0 and dot_table(normal, light.direction) > 0 then
+                local blocked = false
+                local shadow_hit, shadow_distance = scene:intersect(
+                    point[1]+geometric_normal[1]*1e-4, point[2]+geometric_normal[2]*1e-4,
+                    point[3]+geometric_normal[3]*1e-4,
+                    light.direction[1], light.direction[2], light.direction[3])
+                if shadow_hit and shadow_distance < light.distance-2e-4 then blocked = true end
+                if not blocked then
+                    local f = BSDF.evaluate(surface.material, normal, wo, light.direction)
+                    local bsdf_pdf = BSDF.pdf(surface.material, normal, wo, light.direction)
+                    local weight = BSDF.power_heuristic(light.pdf, bsdf_pdf)
+                    local contribution = scale(mul(mul(throughput, f), light.radiance),
+                        dot_table(normal, light.direction)*weight/light.pdf)
+                    add_to(radiance, contribution)
+                end
+            end
+        end
+
+        local wi, f, pdf, is_delta = BSDF.sample(surface.material, normal, wo, rng)
+        local cosine = math.max(dot_table(normal, wi), 0)
+        if pdf <= 0 or cosine <= 0 then break end
+        throughput = scale(mul(throughput, f), cosine/pdf)
+        if not nonzero(throughput) then break end
+
+        if depth+1 >= rr_depth then
+            local survival = math.min(0.95, math.max(throughput[1], throughput[2], throughput[3]))
+            if rng:next() >= survival then break end
+            throughput = scale(throughput, 1/survival)
+        end
+        previous_pdf, previous_delta, previous_point = pdf, is_delta, point
+        current_origin = {point[1]+geometric_normal[1]*1e-4,
+                          point[2]+geometric_normal[2]*1e-4,
+                          point[3]+geometric_normal[3]*1e-4}
+        current_direction = wi
+    end
+    return radiance
 end
 
 return PathTracer

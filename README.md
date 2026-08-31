@@ -110,3 +110,4 @@ ctest --preset gcc-debug -R worker  # "worker" を含むテストを実行
 | アセット | ライセンス | 出典 |
 |---------|-----------|------|
 | [BoxTextured.glb](assets/BoxTextured.glb) | [CC-BY 4.0 International](https://creativecommons.org/licenses/by/4.0/) | © 2017, [Cesium](https://cesium.com/). [glTF-Sample-Assets](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/BoxTextured) |
+| [DamagedHelmet.glb](assets/DamagedHelmet.glb) | [CC-BY 4.0 International](https://creativecommons.org/licenses/by/4.0/) / [CC-BY-NC 4.0 International](https://creativecommons.org/licenses/by-nc/4.0/) | © 2018 ctxwing (glTF conversion), © 2016 theblueturtle_ (original model). [glTF-Sample-Assets](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/DamagedHelmet) |

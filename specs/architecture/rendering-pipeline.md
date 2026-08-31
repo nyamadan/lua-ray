@@ -4,12 +4,9 @@ title: レンダリングパイプライン
 description: ブロックキュー、シングル/マルチスレッド、ダブルバッファ、ポストエフェクトの現行処理。
 tags: [rendering, threading, blocks, buffers, post-effect]
 status: stable
-generated: { by: process:render-stage-refactoring, at: 2026-08-30T22:54:00Z }
+generated: { by: process:codex-implementation, at: 2026-08-30T00:00:00Z }
 verified:
-  - {
-      by: process:render-stage-refactoring-verification,
-      at: 2026-08-30T22:54:00Z,
-    }
+  - { by: process:codex-verification, at: 2026-08-30T00:00:00Z }
 sources:
   - id: raytracer
     resource: ../../lib/RayTracer.lua
@@ -42,6 +39,8 @@ sources:
 
 描画中はback bufferをテクスチャへ表示し、全workerまたはコルーチンが完了したら、ポストエフェクトがあればそのステージへ移る。なければ `swap`、back bufferクリア、front bufferのテクスチャ更新を行う。
 
+`is_progressive()` を返すシーンでは、各passが1 sample/pixelをlinear累積バッファへ加算する。pass完了後は平均画像を表示し、frontをbackへコピーして次passを開始する。`get_max_samples()` 到達時に停止し、カメラ・解像度・シーン変更とキャンセルでは累積をresetする。
+
 # Post-effect stage
 
 ポストエフェクト開始時は完成した画像を読み取り側へswapし、空のback bufferへ結果を書く。`posteffect_queue` をシングル/マルチスレッドで処理し、完了後にswapしてテクスチャを更新する。
@@ -52,4 +51,4 @@ sources:
 
 # Safety properties
 
-各ブロックは排他的に担当され、`AppData:set_pixel` は担当範囲を前提にback bufferへ書く。`AppData` の文字列ストレージとresource cacheはmutexで保護される。Embree sceneはsetup/commit後に交差判定をreadonly共有する。
+各ブロックは排他的に担当され、`AppData:set_pixel` と `accumulate_sample` は担当範囲を前提に異なるpixelへ書く。`AppData` の文字列ストレージとresource cacheはmutexで保護される。Embree sceneはsetup/commit後に交差判定をreadonly共有する。

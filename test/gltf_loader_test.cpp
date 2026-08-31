@@ -160,3 +160,12 @@ TEST(GltfLoaderTest, NoTextureReturnsEmptyImage) {
     EXPECT_EQ(image.height, 0);
     EXPECT_TRUE(image.pixels.empty());
 }
+
+TEST(GltfLoaderTest, CanExtractDamagedHelmetNormals) {
+    GltfData data;
+    ASSERT_TRUE(data.load("assets/DamagedHelmet.glb"));
+    auto normals = data.getNormals(0, 0);
+    EXPECT_EQ(normals.size(), 14556u * 3u);
+    EXPECT_TRUE(data.getNormals(1, 0).empty());
+    EXPECT_TRUE(data.getNormals(0, 1).empty());
+}

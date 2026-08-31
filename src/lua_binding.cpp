@@ -12,6 +12,13 @@
 
 // Helper to bind common types (AppData, Embree, GltfData) to any state
 void bind_common_types(sol::state& lua) {
+    lua.new_usertype<TextureImage>("TextureImage",
+        "width", sol::property([](const TextureImage& image) { return image.width; }),
+        "height", sol::property([](const TextureImage& image) { return image.height; }),
+        "channels", sol::property([](const TextureImage& image) { return image.channels; }),
+        "sample", &TextureImage::sample
+    );
+
     // Bind EmbreeDevice
     lua.new_usertype<EmbreeDevice>("EmbreeDevice",
         sol::constructors<EmbreeDevice()>(),
@@ -41,12 +48,18 @@ void bind_common_types(sol::state& lua) {
         "height", &AppData::get_height,
         "clear", &AppData::clear,
         "clear_back_buffer", &AppData::clear_back_buffer,
+        "accumulate_sample", &AppData::accumulate_sample,
+        "get_sample_count", &AppData::get_sample_count,
+        "reset_accumulation", &AppData::reset_accumulation,
         "set_string", &AppData::set_string,
         "get_string", &AppData::get_string,
         "has_string", &AppData::has_string,
         "pop_next_index", &AppData::pop_next_index,
         "load_gltf", &AppData::load_gltf,
         "load_texture_image", &AppData::load_texture_image,
+        "get_cached_texture", [](AppData& self, const std::string& name) {
+            return self.get_texture_image(name);
+        },
         "get_texture_image", [&lua](AppData& self, const std::string& name) -> sol::object {
             auto image = self.get_texture_image(name);
             if (!image) {
@@ -87,6 +100,13 @@ void bind_common_types(sol::state& lua) {
             }
             return sol::make_object(lua, indices);
         },
+        "get_gltf_normals", [&lua](AppData& self, const std::string& gltf_name, size_t mesh_idx, size_t prim_idx) -> sol::object {
+            auto gltf = self.get_gltf(gltf_name);
+            if (!gltf) return sol::make_object(lua, sol::nil);
+            auto normals = gltf->getNormals(mesh_idx, prim_idx);
+            if (normals.empty()) return sol::make_object(lua, sol::nil);
+            return sol::make_object(lua, normals);
+        },
         "get_gltf_vertices", [&lua](AppData& self, const std::string& gltf_name, size_t mesh_idx, size_t prim_idx) -> sol::object {
             auto gltf = self.get_gltf(gltf_name);
             if (!gltf) {
@@ -114,6 +134,7 @@ void bind_common_types(sol::state& lua) {
         "get_vertices", &GltfData::getVertices,
         "get_indices", &GltfData::getIndices,
         "get_tex_coords", &GltfData::getTexCoords,
+        "get_normals", &GltfData::getNormals,
         "get_texture_image", [&lua](GltfData& self, size_t index) -> sol::table {
             auto image = self.getTextureImage(index);
             sol::table result = lua.create_table();
